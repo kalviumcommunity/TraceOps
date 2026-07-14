@@ -1,0 +1,37 @@
+# Virtual environment - machine-specific, never commit
+venv/
+.venv/
+env/
+ENV/
+
+# Secrets and credentials - NEVER commit these
+.env
+*.key
+*.pem
+
+# Python cache files - auto-generated, not useful to teammates
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Jupyter notebook checkpoints - auto-saved drafts, not needed in repo
+.ipynb_checkpoints/
+
+# macOS system files - irrelevant to teammates on other systems
+.DS_Store
+
+# Data and large output files - regenerable from scripts
+# We keep the .gitkeep files to maintain directory structures in git
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+output/*
+!output/.gitkeep
+
+# Distribution and build artifacts
+*.egg-info/
+dist/
+build/
