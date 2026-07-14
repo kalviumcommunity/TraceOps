@@ -64,3 +64,60 @@ All project work is managed and tracked transparently through GitHub Issues.
    - One clear assignee who is responsible for the task.
 3. **Closing**: To close an issue automatically upon merge, link it in the PR description using `Closes #[issue-number]` or `Fixes #[issue-number]`.
 
+---
+
+## Python Data Workflow Execution
+
+Our pipeline operations are structured as modular Python scripts rather than exploratory notebooks. This ensures automated reproducibility, reliability under cron scheduling, and error traceability.
+
+### 1. How to Execute the Script
+
+Activate your virtual environment and run the pipeline script directly from the project root:
+
+```bash
+# Activate environment (Windows)
+venv\Scripts\Activate.ps1
+
+# Run the data pipeline
+python scripts/data_workflow.py
+```
+
+To run and capture the console logging outputs in a text file:
+```bash
+python scripts/data_workflow.py > output/sample_run.txt
+```
+
+### 2. Functional Architecture & Responsibilities
+
+The pipeline follows the **Three-Function Pattern** dividing ingestion, calculation, and output:
+
+1. **`ingest_data(filepath)`**:
+   - **Role**: Reads the CSV file from disk and loads it into a pandas DataFrame.
+   - **Inputs**: Path to the raw CSV file (`data/raw/sample.csv`).
+   - **Outputs**: Loaded pandas DataFrame.
+   - **Error Handling**: Verifies file existence and logs file errors (`FileNotFoundError`, `EmptyDataError`) before raising.
+2. **`process_data(df)`**:
+   - **Role**: Performs duplicate removal, fills missing fields, and implements feature calculations.
+   - **Inputs**: Raw pandas DataFrame.
+   - **Outputs**: Cleaned and transformed DataFrame.
+   - **Transformations**:
+     - Removes exact duplicate records via `drop_duplicates()`.
+     - Fills missing numeric values with their column-wise median values to prevent skewing analytics.
+     - Computes the picking performance metric `items_per_minute` (calculates items prepared per minute of picking time, protecting against division by zero by clipping pick durations to a minimum of 1 second).
+3. **`output_results(df, output_path)`**:
+   - **Role**: Writes the final processed dataset to disk and outputs statistics to the console.
+   - **Inputs**: Transformed DataFrame and output target path.
+   - **Outputs**: Saved CSV file (`output/processed.csv`) and console log messages.
+
+### 3. How to Modify for New Datasets
+
+To run the pipeline on a new raw dataset:
+1. Place your raw dataset inside the `data/raw/` folder (e.g., `data/raw/new_transactions.csv`).
+2. Open `scripts/data_workflow.py` and modify the hard-coded configuration constants at the top:
+   ```python
+   INPUT_FILE = "data/raw/new_transactions.csv"
+   OUTPUT_FILE = "output/processed_new_transactions.csv"
+   ```
+3. If the new dataset has different numerical column schemas, the cleaning loop inside `process_data` will automatically identify and compute their medians. If different formulas or transformations are required, update the processing steps inside the `process_data(df)` function only.
+
+
