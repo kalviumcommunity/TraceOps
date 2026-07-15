@@ -1,32 +1,4 @@
-order_id,pick_duration_seconds,packing_station_id,shift_id,complaint_logged,item_count
-1001,120,3,Morning,False,12
-1002,150,1,Morning,False,8
-1003,,2,Evening,True,5
-1004,180,3,Evening,False,15
-1005,90,1,Night,False,4
-1006,210,2,Night,True,22
-1007,130,1,Morning,False,10
-1008,140,3,Morning,False,7
-1009,,2,Evening,False,6
-1010,95,1,Evening,False,3
-1011,110,3,Night,False,5
-1012,300,2,Night,True,18
-1013,115,1,Morning,False,9
-1014,125,2,Morning,False,8
-1015,145,3,Evening,False,11
-1016,160,1,Evening,False,14
-1017,85,2,Night,False,3
-1018,220,3,Night,True,25
-1019,105,1,Morning,False,6
-1020,135,2,Morning,False,12
-1020,135,2,Morning,False,12
-1021,,3,Evening,False,10
-1022,175,1,Evening,False,16
-1023,90,2,Night,False,4
-1024,240,3,Night,True,30
-1025,125,1,Morning,False,7
-1026,140,2,Morning,False,11
-1027,150,3,Evening,False,13
-1028,155,1,Evening,False,9
-1029,,2,Night,False,5
-1030,230,3,Night,True,28
+customer_id,customer_name,transaction_amount,transaction_date
+1,Alice Smith,150.50,2025-01-15
+2,Bob Johnson,200.00,2025-01-20
+3,Carol White,75.25,2025-02-01
