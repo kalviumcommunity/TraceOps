@@ -26,10 +26,12 @@ __pycache__/
 # We keep the .gitkeep files to maintain directory structures in git
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/quality_test.csv
 data/processed/*
 !data/processed/.gitkeep
 output/*
 !output/.gitkeep
+!output/profile_report.json
 
 # Distribution and build artifacts
 *.egg-info/
