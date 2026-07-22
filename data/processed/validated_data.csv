@@ -1,0 +1,4 @@
+customer_id,age,price,birth_date,email,phone,start_date,end_date,valid_age,valid_price,valid_date,valid_customer_id,valid_email,valid_email_format,valid_phone,valid_date_order,passes_all_checks
+1,25,150.0,1995-05-15,alice@example.com,1234567890,2025-01-01,2025-01-10,True,True,True,True,True,True,True,True,True
+2,45,299.99,1980-11-20,bob@example.com,9876543210,2025-02-01,2025-02-15,True,True,True,True,True,True,True,True,True
+8,29,19.99,1997-09-05,grace@example.com,0000000000,2025-08-01,2025-08-01,True,True,True,True,True,True,True,True,True
