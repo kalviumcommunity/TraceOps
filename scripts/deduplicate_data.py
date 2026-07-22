@@ -106,14 +106,8 @@ def remove_near_duplicates(df, key_columns, keep_strategy='most_complete'):
             best_idx = null_counts.idxmin()
             return group.loc[[best_idx]]
         
-        # Apply keep_most_complete and preserve the original indices
-        df_dedup_temp = df.groupby(key_columns, as_index=False).apply(keep_most_complete)
-        if isinstance(df_dedup_temp.index, pd.MultiIndex):
-            original_indices = df_dedup_temp.index.get_level_values(1)
-            df_dedup = df_dedup_temp.reset_index(drop=True)
-            df_dedup.index = original_indices
-        else:
-            df_dedup = df_dedup_temp.reset_index(drop=True)
+        # Apply keep_most_complete and preserve original indices
+        df_dedup = df.groupby(key_columns, group_keys=False).apply(keep_most_complete)
     
     elif keep_strategy == 'last':
         # Keep most recent record (last by index)
