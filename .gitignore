@@ -45,6 +45,9 @@ output/*
 !output/dedup_audit_summary.json
 !output/hourly_distribution.png
 !output/hour_day_heatmap.png
+!output/cleaning_log.csv
+!data/raw/outliers_data.csv
+!data/processed/outliers_handled.csv
 
 # Distribution and build artifacts
 *.egg-info/
