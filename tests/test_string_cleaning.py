@@ -41,7 +41,7 @@ def test_remove_special_characters():
     }
     df = pd.DataFrame(data)
     cleaned = remove_special_characters(df, ['city'])
-    assert cleaned['city'].tolist() == ['So Paulo', 'Montreal', 'NewYork']
+    assert cleaned['city'].tolist() == ['So Paulo', 'Montral', 'NewYork']
 
 
 def test_standardize_categories():
