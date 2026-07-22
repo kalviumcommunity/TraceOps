@@ -32,11 +32,15 @@ data/processed/*
 !data/processed/.gitkeep
 !data/processed/cleaned_data.csv
 !data/processed/typed_data.csv
+!data/processed/deduplicated_data.csv
 output/*
 !output/.gitkeep
 !output/profile_report.json
 !output/imputation_decisions.json
 !output/dtype_conversion_report.csv
+!output/removed_duplicates_audit.csv
+!output/dedup_summary.json
+!output/dedup_audit_summary.json
 
 # Distribution and build artifacts
 *.egg-info/
