@@ -28,11 +28,13 @@ data/raw/*
 !data/raw/.gitkeep
 !data/raw/quality_test.csv
 !data/raw/untyped_data.csv
+!data/raw/datetime_transactions.csv
 data/processed/*
 !data/processed/.gitkeep
 !data/processed/cleaned_data.csv
 !data/processed/typed_data.csv
 !data/processed/deduplicated_data.csv
+!data/processed/datetime_features.csv
 output/*
 !output/.gitkeep
 !output/profile_report.json
@@ -41,6 +43,8 @@ output/*
 !output/removed_duplicates_audit.csv
 !output/dedup_summary.json
 !output/dedup_audit_summary.json
+!output/hourly_distribution.png
+!output/hour_day_heatmap.png
 
 # Distribution and build artifacts
 *.egg-info/
