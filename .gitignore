@@ -60,6 +60,8 @@ output/*
 !output/join_validation_report.json
 !data/raw/churn_correlation_data.csv
 !output/correlation_heatmap.png
+!data/raw/customer_segment_data.csv
+!output/segment_insights.csv
 
 # Distribution and build artifacts
 *.egg-info/
