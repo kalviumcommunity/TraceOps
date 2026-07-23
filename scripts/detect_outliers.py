@@ -24,7 +24,8 @@ def detect_zscore_outliers(df, column, threshold=3):
     Returns: Tuple of (outlier_boolean_mask, z_scores)
     """
     z_scores = np.abs(stats.zscore(df[column]))
-    outliers = z_scores > threshold
+    outliers = pd.Series(z_scores > threshold, index=df.index)
+    z_scores = pd.Series(z_scores, index=df.index)
     return outliers, z_scores
 
 def detect_iqr_outliers(df, column, factor=1.5):

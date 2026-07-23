@@ -35,7 +35,7 @@ def generate_sample_data(customers_path=CUSTOMERS_PATH, orders_path=ORDERS_PATH)
     df_orders = pd.DataFrame({
         'order_id': np.arange(10001, 15001),
         'customer_id': order_cust_ids,
-        'order_date': pd.date_range(start='2025-02-01', periods=5000, freq='T').strftime('%Y-%m-%d'),
+        'order_date': pd.date_range(start='2025-02-01', periods=5000, freq='min').strftime('%Y-%m-%d'),
         'amount': np.round(np.random.uniform(10.0, 500.0, size=5000), 2)
     })
     df_orders.to_csv(orders_path, index=False)
