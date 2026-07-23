@@ -62,6 +62,9 @@ output/*
 !output/correlation_heatmap.png
 !data/raw/customer_segment_data.csv
 !output/segment_insights.csv
+!output/rolling_avg.png
+!output/cumulative.png
+!output/trend_analysis.txt
 
 # Distribution and build artifacts
 *.egg-info/
