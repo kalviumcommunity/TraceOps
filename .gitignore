@@ -67,6 +67,8 @@ output/*
 !output/trend_analysis.txt
 !output/segment_heatmap.png
 !output/segmentation_summary.txt
+!output/investigation_report.txt
+!output/investigation_timeline.png
 
 # Distribution and build artifacts
 *.egg-info/
