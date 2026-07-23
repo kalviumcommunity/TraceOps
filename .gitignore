@@ -72,6 +72,7 @@ output/*
 !output/funnel_chart.png
 !output/funnel_analysis.txt
 !output/db_integration_summary.txt
+!output/sql_filtering_grouping_aggregation_summary.txt
 
 # Database files - exclude sqlite binary databases
 *.db
