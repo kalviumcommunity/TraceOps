@@ -67,6 +67,8 @@ output/*
 !output/trend_analysis.txt
 !output/segment_heatmap.png
 !output/segmentation_summary.txt
+!output/anomalies_log.csv
+!output/anomaly_detection.png
 
 # Distribution and build artifacts
 *.egg-info/
