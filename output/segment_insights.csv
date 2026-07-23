@@ -1,4 +1,4 @@
 segment,customer_count,churn_rate,total_revenue,revenue_contribution,action
-Enterprise,54,3.7%,$769289,71.8%,Monitor. No immediate action needed.
-SMB,407,13.3%,$203275,19.0%,HIGH PRIORITY: Churn above 10%. Investigate pain points.
-Startup,539,8.2%,$98613,9.2%,Monitor. No immediate action needed.
+Enterprise,3,0.0%,$48498,75.5%,Healthy. Maintain current service level.
+SMB,23,17.4%,$11284,17.6%,HIGH PRIORITY: Churn above 10%. Investigate pain points.
+Startup,24,4.2%,$4437,6.9%,Monitor. No immediate action needed.
