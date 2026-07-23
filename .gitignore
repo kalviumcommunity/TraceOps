@@ -69,6 +69,8 @@ output/*
 !output/segmentation_summary.txt
 !output/anomalies_log.csv
 !output/anomaly_detection.png
+!output/funnel_chart.png
+!output/funnel_analysis.txt
 
 # Distribution and build artifacts
 *.egg-info/
