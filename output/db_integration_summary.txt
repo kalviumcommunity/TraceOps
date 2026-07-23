@@ -1,0 +1,69 @@
+TRACE OPS DATABASE INTEGRATION SUMMARY REPORT
+==================================================
+
+Database Path: analytics.db
+Table Name: customers_cleaned
+Total Rows Loaded: 1000
+
+AGGREGATION QUERY RESULTS:
+customer_type  count  avg_ltv  total_revenue  avg_tickets
+   Enterprise     54 14246.09      769288.70         1.33
+          SMB    407   499.45      203274.51         4.37
+      Startup    539   182.96       98613.06         2.60
+
+ENTERPRISE CUSTOMERS SUBSET:
+ customer_id                    email signup_date customer_type          product  churn  revenue  lifetime_value  support_tickets
+          11  customer_11@example.com  2025-01-01    Enterprise Enterprise Suite      0 13668.55        13668.55                3
+          30  customer_30@example.com  2025-01-01    Enterprise Enterprise Suite      0 11859.83        11859.83                0
+          43  customer_43@example.com  2025-01-01    Enterprise Enterprise Suite      0 13604.09        13604.09                2
+          59  customer_59@example.com  2025-01-01    Enterprise Enterprise Suite      0 13732.84        13732.84                1
+          73  customer_73@example.com  2025-01-01    Enterprise Enterprise Suite      0 13960.72        13960.72                2
+          99  customer_99@example.com  2025-01-01    Enterprise Enterprise Suite      0 13223.65        13223.65                3
+         101 customer_101@example.com  2025-01-01    Enterprise Enterprise Suite      0 15082.93        15082.93                1
+         129 customer_129@example.com  2025-01-01    Enterprise    Analytics Pro      0 12944.45        12944.45                1
+         146 customer_146@example.com  2025-01-01    Enterprise    Analytics Pro      0 20386.22        20386.22                2
+         169 customer_169@example.com  2025-01-01    Enterprise Enterprise Suite      0 12776.46        12776.46                0
+         172 customer_172@example.com  2025-01-01    Enterprise Enterprise Suite      0 11084.90        11084.90                0
+         206 customer_206@example.com  2025-01-01    Enterprise Enterprise Suite      0 14423.63        14423.63                0
+         209 customer_209@example.com  2025-01-01    Enterprise Enterprise Suite      0 15658.95        15658.95                1
+         238 customer_238@example.com  2025-01-01    Enterprise    Analytics Pro      0 11535.72        11535.72                2
+         245 customer_245@example.com  2025-01-01    Enterprise    Analytics Pro      0 12484.02        12484.02                2
+         286 customer_286@example.com  2025-01-01    Enterprise Enterprise Suite      0 15774.58        15774.58                2
+         291 customer_291@example.com  2025-01-01    Enterprise Enterprise Suite      0 13442.07        13442.07                0
+         292 customer_292@example.com  2025-01-01    Enterprise Enterprise Suite      0 13440.48        13440.48                3
+         313 customer_313@example.com  2025-01-01    Enterprise    Analytics Pro      0 14712.01        14712.01                2
+         333 customer_333@example.com  2025-01-01    Enterprise    Analytics Pro      0 14390.05        14390.05                3
+         335 customer_335@example.com  2025-01-01    Enterprise Enterprise Suite      0 13932.77        13932.77                1
+         336 customer_336@example.com  2025-01-01    Enterprise Enterprise Suite      0 14909.48        14909.48                4
+         348 customer_348@example.com  2025-01-01    Enterprise Enterprise Suite      0 12921.75        12921.75                1
+         357 customer_357@example.com  2025-01-01    Enterprise Enterprise Suite      0 10965.65        10965.65                0
+         372 customer_372@example.com  2025-01-01    Enterprise Enterprise Suite      0 14186.74        14186.74                1
+         378 customer_378@example.com  2025-01-01    Enterprise Enterprise Suite      0 14898.44        14898.44                0
+         408 customer_408@example.com  2025-01-01    Enterprise    Analytics Pro      0 16230.87        16230.87                1
+         457 customer_457@example.com  2025-01-01    Enterprise Enterprise Suite      0 14220.78        14220.78                1
+         471 customer_471@example.com  2025-01-01    Enterprise    Analytics Pro      0 15872.42        15872.42                2
+         473 customer_473@example.com  2025-01-01    Enterprise Enterprise Suite      0 15045.12        15045.12                1
+         487 customer_487@example.com  2025-01-01    Enterprise    Analytics Pro      0 14746.70        14746.70                0
+         515 customer_515@example.com  2025-01-01    Enterprise Enterprise Suite      0 15309.95        15309.95                1
+         516 customer_516@example.com  2025-01-01    Enterprise Enterprise Suite      0 15621.60        15621.60                1
+         558 customer_558@example.com  2025-01-01    Enterprise Enterprise Suite      0 14389.68        14389.68                0
+         564 customer_564@example.com  2025-01-01    Enterprise Enterprise Suite      0 14834.79        14834.79                0
+         600 customer_600@example.com  2025-01-01    Enterprise Enterprise Suite      1 14766.87        14766.87                1
+         611 customer_611@example.com  2025-01-01    Enterprise Enterprise Suite      0 14641.75        14641.75                0
+         629 customer_629@example.com  2025-01-01    Enterprise Enterprise Suite      0 13078.34        13078.34                3
+         641 customer_641@example.com  2025-01-01    Enterprise Enterprise Suite      0 14556.60        14556.60                0
+         765 customer_765@example.com  2025-01-01    Enterprise Enterprise Suite      0 14350.35        14350.35                3
+         795 customer_795@example.com  2025-01-01    Enterprise Enterprise Suite      0 13242.48        13242.48                0
+         822 customer_822@example.com  2025-01-01    Enterprise    Analytics Pro      0 15085.75        15085.75                3
+         841 customer_841@example.com  2025-01-01    Enterprise    Analytics Pro      0 15933.09        15933.09                0
+         857 customer_857@example.com  2025-01-01    Enterprise Enterprise Suite      0 12219.25        12219.25                1
+         875 customer_875@example.com  2025-01-01    Enterprise Enterprise Suite      0 15061.79        15061.79                2
+         879 customer_879@example.com  2025-01-01    Enterprise Enterprise Suite      1 14585.90        14585.90                4
+         883 customer_883@example.com  2025-01-01    Enterprise Enterprise Suite      0 11003.26        11003.26                0
+         899 customer_899@example.com  2025-01-01    Enterprise Enterprise Suite      0 17292.74        17292.74                0
+         902 customer_902@example.com  2025-01-01    Enterprise Enterprise Suite      0 14699.85        14699.85                1
+         926 customer_926@example.com  2025-01-01    Enterprise Enterprise Suite      0 15124.85        15124.85                2
+         937 customer_937@example.com  2025-01-01    Enterprise Enterprise Suite      0 16466.81        16466.81                2
+         946 customer_946@example.com  2025-01-01    Enterprise    Analytics Pro      0 15366.42        15366.42                4
+         958 customer_958@example.com  2025-01-01    Enterprise Enterprise Suite      0 13347.53        13347.53                1
+         975 customer_975@example.com  2025-01-01    Enterprise Enterprise Suite      0 12192.18        12192.18                1

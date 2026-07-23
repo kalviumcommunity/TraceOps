@@ -199,9 +199,9 @@ def resample_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     })
     
     # Monthly aggregation: sum of revenue, count of daily records, mean of daily revenue
-    monthly_revenue = df_ts['revenue'].resample('M').sum()
-    monthly_count = df_ts['orders'].resample('M').count()
-    monthly_avg = df_ts['revenue'].resample('M').mean()
+    monthly_revenue = df_ts['revenue'].resample('ME').sum()
+    monthly_count = df_ts['orders'].resample('ME').count()
+    monthly_avg = df_ts['revenue'].resample('ME').mean()
     
     monthly_metrics = pd.DataFrame({
         'monthly_revenue': monthly_revenue,

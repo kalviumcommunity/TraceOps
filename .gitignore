@@ -71,6 +71,10 @@ output/*
 !output/anomaly_detection.png
 !output/funnel_chart.png
 !output/funnel_analysis.txt
+!output/db_integration_summary.txt
+
+# Database files - exclude sqlite binary databases
+*.db
 
 # Distribution and build artifacts
 *.egg-info/
