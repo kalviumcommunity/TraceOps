@@ -67,6 +67,7 @@ output/*
 !output/trend_analysis.txt
 !output/segment_heatmap.png
 !output/segmentation_summary.txt
+!output/kpi_validation_report.json
 
 # Distribution and build artifacts
 *.egg-info/
