@@ -1,12 +1,19 @@
 {
-  "join_type": "left",
-  "left_table": "customers",
-  "right_table": "orders",
-  "join_key": "customer_id",
-  "left_rows": 1000,
-  "right_rows": 5000,
-  "result_rows": 5059,
-  "unmatched_left": 109,
-  "unmatched_right": 50,
-  "reasoning": "Left join preserves all customers; unmatched customers have no orders"
+  "join_strategy": "multi_table_relational_validation",
+  "tables": {
+    "customers_count": 1000,
+    "orders_count": 5000,
+    "order_items_count": 8000,
+    "products_count": 500
+  },
+  "join_counts": {
+    "inner_count": 4950,
+    "left_count": 5054,
+    "full_count": 5104
+  },
+  "unmatched_keys": {
+    "customers_without_orders": 104,
+    "orphaned_orders": 50
+  },
+  "validation_status": "PASSED"
 }
