@@ -1,0 +1,37 @@
+[
+  {
+    "kpi_name": "mau",
+    "actual_value": 5500,
+    "formatted_actual": "5,500",
+    "target_range": "5,000 - 6,000",
+    "status": "PASS"
+  },
+  {
+    "kpi_name": "revenue_per_customer",
+    "actual_value": 105.0,
+    "formatted_actual": "$105.00",
+    "target_range": "$90 - $110",
+    "status": "PASS"
+  },
+  {
+    "kpi_name": "churn_rate",
+    "actual_value": 0.08,
+    "formatted_actual": "8.00%",
+    "target_range": "0.0% - 5.0%",
+    "status": "ALERT"
+  },
+  {
+    "kpi_name": "payment_success_rate",
+    "actual_value": 0.98,
+    "formatted_actual": "98.00%",
+    "target_range": "95.0% - 100.0%",
+    "status": "PASS"
+  },
+  {
+    "kpi_name": "customer_acquisition_cost",
+    "actual_value": 35.0,
+    "formatted_actual": "$35.00",
+    "target_range": "$0 - $50",
+    "status": "PASS"
+  }
+]
