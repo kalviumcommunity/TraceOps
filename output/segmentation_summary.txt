@@ -1,0 +1,22 @@
+CUSTOMER BEHAVIORAL ANALYSIS & USER SEGMENTATION
+===============================================
+
+1. PERFORMANCE LEADERBOARD (TASKS 4)
+------------------------------------
+- HIGHEST VALUE SEGMENT: ENTERPRISE (Average LTV: $151,018.21)
+- HIGHEST CHURN RISK SEGMENT: SMB (Churn Rate: 11.3%)
+- BEST RETENTION LEADER: ENTERPRISE (Average Retention: 658.8 days)
+
+2. STRATEGIC SEGMENT PLAYBOOKS (TASK 5)
+---------------------------------------
+ENTERPRISE (5.4% of base, $151,018 LTV, 1.9% churn):
+- Insight: This segment represents our high-value cornerstone with an extremely stable profile. Their low support ticket volume (1.6 avg) and high retention (659 days) indicate outstanding product-market fit.
+- Recommended Action: Maintain dedicated white-glove support, organize quarterly business reviews (QBRs), and design premium expansion pathways to drive cross-sell revenue.
+
+SMB (40.7% of base, $8,070 LTV, 11.3% churn):
+- Insight: This segment is our primary leak, displaying critical churn risk coupled with heavy support burden (4.4 tickets avg). Shorter retention (182 days) points to gaps in onboarding or pricing frustration.
+- Recommended Action: Redesign onboarding flows, deploy automated churn warning triggers, and offer lower-cost self-service support options to reduce support costs.
+
+STARTUP (53.9% of base, $1,981 LTV, 8.3% churn):
+- Insight: Startups represent our volume engine (largest count) with moderate value and moderate churn (8.3%). They are moderately active in support (2.7 tickets).
+- Recommended Action: Deliver digital-first education (webinars, knowledge base articles) and implement product-led growth (PLG) self-service upsell models to capture expansion as they scale.
