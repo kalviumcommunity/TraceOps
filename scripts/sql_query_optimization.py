@@ -30,25 +30,65 @@ REPORT_JSON_PATH = os.path.join(OUTPUT_DIR, "query_optimization_report.json")
 SUMMARY_TXT_PATH = os.path.join(OUTPUT_DIR, "query_optimization_summary.txt")
 
 
-def setup_database_connection(connection_uri: str = f"sqlite:///{DEFAULT_DB_PATH}") -> Engine:
+def setup_database_connection(connection_uri: str = None) -> Engine:
     """
     Setup database connection using SQLAlchemy engine.
     Registers custom SQLite functions (e.g., YEAR()) for ANSI SQL compatibility.
+    Loads variables from .env if present.
     """
-    engine = create_engine(connection_uri, echo=False)
-    
-    # Register custom YEAR function for SQLite dialect compatibility
-    raw_conn = engine.raw_connection()
-    try:
-        raw_conn.create_function("YEAR", 1, lambda d: int(str(d)[:4]) if d and len(str(d)) >= 4 else None)
-    except Exception:
-        pass
-    finally:
-        raw_conn.close()
+    import os
+    import dotenv
+    dotenv.load_dotenv()
 
-    with engine.connect() as conn:
-        conn.execute(text("SELECT 1"))
-    return engine
+    default_uri = f"sqlite:///{DEFAULT_DB_PATH}"
+    
+    # If connection_uri is default or None, check environment variables
+    if connection_uri is None or connection_uri == default_uri or connection_uri == DEFAULT_DB_PATH:
+        env_uri = os.getenv("DATABASE_URL")
+        if env_uri:
+            connection_uri = env_uri
+        else:
+            db_user = os.getenv("DB_USER")
+            db_pass = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS")
+            db_host = os.getenv("DB_HOST")
+            db_port = os.getenv("DB_PORT", "5432")
+            db_name = os.getenv("DB_NAME")
+            if db_user and db_host and db_name:
+                connection_uri = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+            elif connection_uri is None:
+                connection_uri = default_uri
+
+    if "://" not in connection_uri:
+        connection_uri = f"sqlite:///{connection_uri}"
+
+    def register_sqlite_functions(eng):
+        if "sqlite" in str(eng.url):
+            raw_conn = eng.raw_connection()
+            try:
+                raw_conn.create_function("YEAR", 1, lambda d: int(str(d)[:4]) if d and len(str(d)) >= 4 else None)
+            except Exception:
+                pass
+            finally:
+                raw_conn.close()
+
+    try:
+        engine = create_engine(connection_uri, echo=False)
+        register_sqlite_functions(engine)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return engine
+    except Exception as e:
+        if "postgresql" in connection_uri:
+            print(f"[WARNING] Failed to connect to PostgreSQL ({connection_uri.split('@')[-1]}): {e}")
+            print(f"Falling back to local SQLite database: {default_uri}")
+            engine = create_engine(default_uri, echo=False)
+            register_sqlite_functions(engine)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return engine
+        else:
+            raise e
+
 
 
 def seed_optimization_dataset(engine: Engine) -> None:

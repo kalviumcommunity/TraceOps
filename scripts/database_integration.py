@@ -22,33 +22,61 @@ RAW_DATA_PATH = os.path.join("data", "raw", "customer_segment_data.csv")
 OUTPUT_SUMMARY_PATH = os.path.join("output", "db_integration_summary.txt")
 
 
-def setup_database_connection(connection_uri: str = f"sqlite:///{DEFAULT_DB_PATH}") -> Engine:
+def setup_database_connection(connection_uri: str = None) -> Engine:
     """
     Task 1: Setup Database Connection
     Creates an SQLAlchemy engine and validates active database connectivity.
-
-    Connection Strings Reference (Without Hardcoded Credentials):
-    - SQLite (file-based): "sqlite:///analytics.db" or "sqlite:///:memory:"
-    - PostgreSQL (production): "postgresql://{user}:{password}@{host}:{port}/{dbname}"
-      Example with env vars: f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@{os.getenv('DB_HOST','localhost')}:5432/{os.getenv('DB_NAME','analytics')}"
-
-    Parameters:
-        connection_uri (str): Database connection string.
-
-    Returns:
-        Engine: Active SQLAlchemy engine instance.
+    Loads variables from .env if present.
     """
-    engine = create_engine(connection_uri, echo=False)
-    
-    # Test connection
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT 1")).scalar()
-        if result == 1:
-            print("[OK] Database connection successful")
-        else:
-            raise RuntimeError("Database connection test failed.")
+    import os
+    import dotenv
+    dotenv.load_dotenv()
 
-    return engine
+    default_uri = f"sqlite:///{DEFAULT_DB_PATH}"
+    
+    # If connection_uri is default or None, check environment variables
+    if connection_uri is None or connection_uri == default_uri or connection_uri == DEFAULT_DB_PATH:
+        env_uri = os.getenv("DATABASE_URL")
+        if env_uri:
+            connection_uri = env_uri
+        else:
+            db_user = os.getenv("DB_USER")
+            db_pass = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS")
+            db_host = os.getenv("DB_HOST")
+            db_port = os.getenv("DB_PORT", "5432")
+            db_name = os.getenv("DB_NAME")
+            if db_user and db_host and db_name:
+                connection_uri = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+            elif connection_uri is None:
+                connection_uri = default_uri
+
+    if "://" not in connection_uri:
+        connection_uri = f"sqlite:///{connection_uri}"
+
+    try:
+        engine = create_engine(connection_uri, echo=False)
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1")).scalar()
+            if result == 1:
+                print("[OK] Database connection successful")
+            else:
+                raise RuntimeError("Database connection test failed.")
+        return engine
+    except Exception as e:
+        if "postgresql" in connection_uri:
+            print(f"[WARNING] Failed to connect to PostgreSQL ({connection_uri.split('@')[-1]}): {e}")
+            print(f"Falling back to local SQLite database: {default_uri}")
+            engine = create_engine(default_uri, echo=False)
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT 1")).scalar()
+                if result == 1:
+                    print("[OK] Fallback SQLite database connection successful")
+                else:
+                    raise RuntimeError("Fallback SQLite connection test failed.")
+            return engine
+        else:
+            raise e
+
 
 
 def prepare_cleaned_customer_data(raw_csv_path: str = RAW_DATA_PATH) -> pd.DataFrame:
