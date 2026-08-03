@@ -1,0 +1,64 @@
+FUNNEL OPTIMIZATION & DROP-OFF DETECTION REPORT
+================================================
+
+1. EXECUTIVE LEADERBOARD (BUSINESS IMPACT RANKING)
+-------------------------------------------------
+We assign a baseline Customer Lifetime Value (LTV) of $100 per completed checkout.
+Below is the ranked breakdown of revenue leaks across each transition step:
+
+Rank 1: Payment Added -> First Purchase
+  - Users Lost: 2,000
+  - Revenue Lost: $200,000
+  - Intervention Priority: HIGH
+
+Rank 2: Email Entered -> Password Created
+  - Users Lost: 2,000
+  - Revenue Lost: $200,000
+  - Intervention Priority: HIGH
+
+Rank 3: Sign Up -> Email Entered
+  - Users Lost: 2,000
+  - Revenue Lost: $200,000
+  - Intervention Priority: HIGH
+
+Rank 4: Email Verified -> Payment Added
+  - Users Lost: 1,000
+  - Revenue Lost: $100,000
+  - Intervention Priority: MEDIUM
+
+Rank 5: Password Created -> Email Verified
+  - Users Lost: 1,000
+  - Revenue Lost: $100,000
+  - Intervention Priority: MEDIUM
+
+2. CRITICAL BOTTLENECK ANALYSIS
+--------------------------------
+The single highest-priority leak in our signup flow is:
+* Stage: Payment Added -> First Purchase
+* Absolute Users Lost: 2,000
+* Drop Rate: 50.0%
+* Monthly Revenue Impact: $200,000
+
+Why this occurs:
+- The drop-off from Payment Added to First Purchase represents a 50% leakage rate. Although payment credentials have been added, users fail to execute their first transaction.
+- Primary Hypotheses:
+  1. High friction on checkout: Checkout page loading latency or buggy credit card validation forms.
+  2. Hidden charges: Unexplained shipping fees, tax markups, or service charges revealed only at checkout.
+  3. Lack of motivation: Absence of immediate incentives (e.g., first-purchase discount code) or trust badges to prompt closure.
+
+3. ACTIONABLE STRATEGY & Measurable success criteria
+----------------------------------------------------
+- Suggested Interventions:
+  1. Simplify Checkout UX: Reduce payment form fields to the absolute minimum and deploy one-click express payment methods (e.g. Apple Pay, Google Pay).
+  2. Incentive Integration: Send an automated email / SMS reminder within 15 minutes of payment method addition offering a 10% first-purchase coupon.
+  3. Pricing Transparency: Display all taxes and shipping costs upfront at the signup stage rather than hiding them until the final screen.
+
+- Expected Business Impact:
+  If we successfully optimize the completion rate of the Payment Added -> First Purchase transition by 10% (moving the rate from 50% to 55%):
+  * Additional conversions recovered: 200 customers.
+  * Monthly Revenue Recovery: $20,000.
+
+- Success Criteria:
+  1. A/B test the simplified checkout layout against the current baseline.
+  2. Validate that the Payment Added to First Purchase completion rate increases by at least 5% within 14 days of launch.
+  3. Verify that overall funnel conversion increases from 20% to 22%+.

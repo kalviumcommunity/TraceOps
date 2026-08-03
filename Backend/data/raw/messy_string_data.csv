@@ -1,0 +1,15 @@
+customer_id,customer_name,product_category,customer_segment,city,notes
+1, John , Electronics ,b2b,São Paulo, Great customer service! 
+2,JOHN,electronics,b 2 b,Montréal,Ordered item #402.
+3,john,ELECTRONICS,b2 b,New-York!,Needs urgent delivery.
+4, Alice , Home Appliances ,business-to-business, London ,
+5,ALICE,home appliances,sme, Paris ,Follow up next week.
+6,alice,HOME APPLIANCES,small medium enterprise,Tokyo,
+7, Bob , Clothing ,enterprise, Berlin ,Regular buyer standard discount.
+8,BOB,clothing,Enterprise, Madrid ,VIP member!
+9,  Product A  ,  Electronics  ,b2b,  Rome!  ,
+10,PRODUCT B,Clothing,sme,Munich,
+11,Product_C,Home Appliances,enterprise,Toronto,
+12,Sara,Electronics,b2b,São Paulo,
+13,SARA,electronics,business-to-business,Montréal,
+14,,Electronics,b2b,London,Missing customer name

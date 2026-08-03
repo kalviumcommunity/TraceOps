@@ -1,0 +1,5 @@
+Starting TraceOps Data Ingestion & Validation Workflow...
+✓ Data successfully processed
+✓ Rows processed: 30
+✓ Output saved to output/processed.csv
+✓ Workflow completed successfully
