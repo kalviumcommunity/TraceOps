@@ -1,0 +1,75 @@
+========================================================================
+SQL FILTERING, GROUPING & AGGREGATION PIPELINE SUMMARY REPORT
+========================================================================
+
+--- TEAM DOCUMENTATION & ARCHITECTURAL PATTERNS ---
+
+1. WHERE vs HAVING Distinction:
+   - WHERE: Filters raw records BEFORE grouping occurs. Used for data quality checks
+     (e.g. status = 'completed', date ranges, excluding negative/zero amounts).
+   - HAVING: Filters aggregate group metrics AFTER GROUP BY calculations finish.
+     Used for metric thresholds (e.g. SUM(amount) > 10000, COUNT(*) >= 5).
+
+2. GROUP BY Semantics:
+   - GROUP BY alters the aggregation grain of the query from a single table total
+     to discrete combinations of dimension values (e.g. customer_type + month).
+
+3. Optimization Consideration:
+   - Applying WHERE filters prior to GROUP BY is significantly faster because it
+     prunes irrelevant rows early, reducing memory footprint and computational
+     overhead during hash/sort grouping operations.
+
+4. Percentage Share Computation:
+   - Evaluates segment revenue relative to global total using window function OVER ():
+
+customer_type  segment_revenue  pct_share_of_total
+   Enterprise          50000.0               97.37
+          SMB           1350.0                2.63
+
+------------------------------------------------------------------------
+TASK QUERY EXECUTION RESULTS SNAPSHOTS
+------------------------------------------------------------------------
+
+=== TASK1_WHERE ===
+ customer_id  annual_revenue  transaction_count
+         106         18000.0                  6
+         101         15000.0                  6
+         102         11000.0                  5
+         109          6000.0                  4
+         103          1350.0                  3
+
+=== TASK2_GROUP_BY ===
+customer_type      month  unique_customers  transaction_count  monthly_revenue  avg_transaction
+   Enterprise 2024-08-01                 1                  1           3000.0      3000.000000
+   Enterprise 2024-07-01                 1                  1           3000.0      3000.000000
+   Enterprise 2024-06-01                 3                  3           7700.0      2566.666667
+   Enterprise 2024-05-01                 3                  3           7700.0      2566.666667
+   Enterprise 2024-04-01                 4                  4           9200.0      2300.000000
+   Enterprise 2024-03-01                 4                  4           9200.0      2300.000000
+          SMB 2024-03-01                 2                  2            350.0       175.000000
+   Enterprise 2024-02-01                 3                  3           6200.0      2066.666667
+          SMB 2024-02-01                 1                  1            450.0       450.000000
+   Enterprise 2024-01-01                 2                  2           4000.0      2000.000000
+          SMB 2024-01-01                 1                  1            450.0       450.000000
+
+=== TASK3_HAVING ===
+ customer_id  transaction_count  annual_revenue
+         106                  6         18000.0
+         101                  6         15000.0
+         102                  5         11000.0
+
+=== TASK4_COMBINED ===
+customer_type  segment_customers  segment_revenue  avg_order_value
+   Enterprise                  4          50000.0          2380.95
+          SMB                  1           1350.0           450.00
+
+=== TASK5_RANKING ===
+customer_type   industry  customers  total_revenue  avg_order  revenue_rank
+   Enterprise    Finance          2        33000.0     2750.0             1
+   Enterprise Healthcare          1        11000.0     2200.0             2
+   Enterprise       Tech          1         6000.0     1500.0             3
+          SMB       Tech          1         1350.0      450.0             4
+
+========================================================================
+VALIDATION STATUS: ALL CHECKS PASSED SUCCESSFULLY
+========================================================================

@@ -1,0 +1,3 @@
+column,method,action,threshold_lower,threshold_upper,affected_rows,date
+revenue,IQR,cap,-384.0625,910.4375,1,2026-07-22T15:36:53.154079
+age,IQR,remove,-4.75,83.25,2,2026-07-22T15:36:53.154079
