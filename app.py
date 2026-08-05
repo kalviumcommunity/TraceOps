@@ -333,7 +333,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Go to",
-        ["Overview", "Trends", "Segments", "Data Explorer"]
+        ["Overview", "Trends", "Segments", "Data Explorer", "Data Upload"]
     )
 
     st.sidebar.divider()
@@ -518,6 +518,90 @@ def main():
             )
             st.write("Click above to download the currently displayed dataset in standard CSV format.")
 
+    # ── Task 1, 2, 3, 4, 5: DATA UPLOAD PAGE ──
+    elif page == "Data Upload":
+        st.title("Dataset Upload & Dynamic Preview System")
+
+        st.header("Upload Custom Dataset")
+        st.subheader("Accepts CSV and JSON formats")
+
+        # Task 1 & Task 4: File Uploader widget & Error Handling
+        uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "json"])
+
+        if uploaded_file is not None:
+            try:
+                if uploaded_file.name.endswith(".csv"):
+                    df_upload = pd.read_csv(uploaded_file)
+                elif uploaded_file.name.endswith(".json"):
+                    df_upload = pd.read_json(uploaded_file)
+                else:
+                    st.error("Unsupported file type. Please upload CSV or JSON.")
+                    st.stop()
+
+                if len(df_upload) == 0:
+                    st.warning("Uploaded file is empty. Please check your data.")
+                    st.stop()
+
+                st.success(
+                    "File loaded: "
+                    + uploaded_file.name
+                    + " ("
+                    + str(len(df_upload))
+                    + " rows, "
+                    + str(len(df_upload.columns))
+                    + " columns)"
+                )
+                st.session_state["uploaded_df"] = df_upload
+
+            except Exception as e:
+                st.error("Could not read this file. Please check the format and try again.")
+                st.stop()
+
+            # Task 2: Automatic Preview and Column Summary
+            st.header("Dataset Preview")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Rows", f"{len(df_upload):,}")
+            with col2:
+                st.metric("Columns", str(len(df_upload.columns)))
+            with col3:
+                total_nulls = df_upload.isnull().sum().sum()
+                total_cells = df_upload.shape[0] * df_upload.shape[1]
+                null_pct = (total_nulls / total_cells) * 100 if total_cells > 0 else 0.0
+                st.metric("Null %", f"{null_pct:.1f}%")
+
+            st.divider()
+
+            # First 10 rows
+            st.subheader("First 10 Rows")
+            st.dataframe(df_upload.head(10), use_container_width=True)
+
+            # Column summary
+            st.subheader("Column Summary")
+            summary = pd.DataFrame({
+                "Column": df_upload.columns,
+                "Type": df_upload.dtypes.astype(str).values,
+                "Non-Null": df_upload.notnull().sum().values,
+                "Null Count": df_upload.isnull().sum().values,
+                "Null %": (df_upload.isnull().sum() / len(df_upload) * 100).round(1).values
+            })
+            st.dataframe(summary, use_container_width=True)
+
+            # Task 3: Basic Descriptive Statistics
+            st.subheader("Descriptive Statistics")
+            st.dataframe(df_upload.describe(), use_container_width=True)
+
+            # Task 5: Ensure Data Is Usable Downstream (Quick Exploration)
+            st.subheader("Quick Exploration")
+            numeric_cols = df_upload.select_dtypes(include="number").columns.tolist()
+            if numeric_cols:
+                selected_col = st.selectbox("Select a column to visualise", numeric_cols)
+                st.bar_chart(df_upload[selected_col].value_counts().head(20))
+
+        else:
+            st.info("Upload a CSV or JSON file to begin.")
+
 
 if __name__ == "__main__":
     main()
+
