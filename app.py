@@ -345,15 +345,47 @@ def main():
     elif "revenue" in df.columns:
         df["amount"] = df["revenue"]
 
+    # ── Task 1, Task 2 & Task 5: Initialise Session State with Safe Defaults, Descriptive Names & Inline Documentation ──
+    # "selected_segment" - stores the user's segment choice from Step 1
+    # so it survives reruns when the user interacts with Step 2 widgets.
+    if "selected_segment" not in st.session_state:
+        st.session_state["selected_segment"] = "All"
+
+    # "workflow_step" - tracks which step the user has completed.
+    # Prevents Step 2 from displaying before Step 1 is confirmed.
+    if "workflow_step" not in st.session_state:
+        st.session_state["workflow_step"] = 1
+
+    # "analysis_result" - caches the computation from Step 2 so
+    # it does not recompute when unrelated widgets are changed.
+    if "analysis_result" not in st.session_state:
+        st.session_state["analysis_result"] = None
+
+    # "filter_date_start" - stores start date filter to maintain continuity across reruns
+    if "filter_date_start" not in st.session_state:
+        st.session_state["filter_date_start"] = None
+
+    # "filter_date_end" - stores end date filter to maintain continuity across reruns
+    if "filter_date_end" not in st.session_state:
+        st.session_state["filter_date_end"] = None
+
+    # "computed_revenue" - caches calculated revenue for segment analysis
+    if "computed_revenue" not in st.session_state:
+        st.session_state["computed_revenue"] = 0.0
+
+    # "export_ready" - tracks whether segment analysis data is ready for export
+    if "export_ready" not in st.session_state:
+        st.session_state["export_ready"] = False
+
     # ── Task 1: Sidebar Navigation & Interactive Widgets ──
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Go to",
-        ["Overview", "Trends", "Segments", "Data Explorer", "Data Upload"]
+        ["Overview", "Workflow Analysis", "Trends", "Segments", "Data Explorer", "Data Upload"]
     )
 
     st.sidebar.divider()
-    st.sidebar.header("Filters")
+    st.sidebar.header("Filters & Reset Controls")
 
     # Widget 1: Date range picker
     date_min = df["date"].min().date() if pd.notnull(df["date"].min()) else datetime.date.today()
@@ -384,9 +416,17 @@ def main():
     statuses = ["All"] + sorted(df["payment_status"].dropna().unique().tolist()) if "payment_status" in df.columns else ["All"]
     payment_status_filter = st.sidebar.radio("Payment Status", options=statuses, index=0)
 
-    # Task 5: Implement Filter Reset Button
-    if st.sidebar.button("Reset Filters"):
-        st.rerun()
+    # Task 4: Implement Session State & Filter Reset Buttons
+    col_reset1, col_reset2 = st.sidebar.columns(2)
+    with col_reset1:
+        if st.button("Reset Filters"):
+            st.rerun()
+    with col_reset2:
+        if st.button("Reset Workflow"):
+            for key in ["selected_segment", "workflow_step", "analysis_result", "filter_date_start", "filter_date_end", "computed_revenue", "export_ready"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
 
     # Task 2 & Task 3: Wire Widgets into Filter Chain with Meaningful Defaults
     if isinstance(date_range, (list, tuple)):
@@ -420,8 +460,64 @@ def main():
     ref = filtered_df["date"].max() if len(filtered_df) > 0 else df["date"].max()
     curr, prior = get_kpis(filtered_df, ref)
 
-    # ── Task 1, 2, 3, 5: OVERVIEW PAGE ──
-    if page == "Overview":
+    # ── Task 3: MULTI-STEP WORKFLOW PAGE ──
+    if page == "Workflow Analysis":
+        st.title("Multi-Step Workflow Analysis")
+        st.write("Demonstrating Streamlit session state persistence across widget interactions.")
+
+        # Step 1: Select Segment
+        st.header("Step 1: Select Segment")
+        segment_options = ["All", "Enterprise", "Mid-Market", "SMB", "Startup"]
+        current_chosen = st.session_state.get("selected_segment", "All")
+        default_index = segment_options.index(current_chosen) if current_chosen in segment_options else 0
+
+        segment = st.selectbox(
+            "Choose a segment",
+            options=segment_options,
+            index=default_index
+        )
+
+        if st.button("Confirm Segment"):
+            st.session_state["selected_segment"] = segment
+            st.session_state["workflow_step"] = 2
+
+        # Step 2: Show analysis (only if step 1 is complete)
+        if st.session_state["workflow_step"] >= 2:
+            st.divider()
+            st.header("Step 2: Segment Analysis")
+            chosen = st.session_state["selected_segment"]
+            st.write("Analysing segment: " + chosen)
+
+            if chosen == "All":
+                analysis_df = filtered_df
+            else:
+                analysis_df = filtered_df[filtered_df["segment"] == chosen]
+
+            # Compute and store results in session state
+            result = float(analysis_df["revenue"].sum()) if len(analysis_df) > 0 else 0.0
+            st.session_state["analysis_result"] = result
+            st.session_state["computed_revenue"] = result
+            st.session_state["export_ready"] = True
+            
+            st.metric("Total Revenue", f"${result:,.0f}")
+
+            wf_c1, wf_c2, wf_c3 = st.columns(3)
+            with wf_c1:
+                st.metric("Unique Customers", f"{analysis_df['customer_id'].nunique():,}")
+            with wf_c2:
+                st.metric("Transaction Count", f"{len(analysis_df):,}")
+            with wf_c3:
+                avg_rev = float(analysis_df["revenue"].mean()) if len(analysis_df) > 0 else 0.0
+                st.metric("Avg Order Value", f"${avg_rev:,.2f}")
+
+            with st.expander("View Filtered Segment Records"):
+                st.dataframe(
+                    analysis_df[["transaction_id", "customer_id", "transaction_date", "revenue", "segment", "product"]].head(20),
+                    use_container_width=True
+                )
+
+    # ── OVERVIEW PAGE ──
+    elif page == "Overview":
         # Task 3: Title (once per page)
         st.title("Business Overview")
 
