@@ -329,7 +329,23 @@ def create_product_chart(df: pd.DataFrame, ref: pd.Timestamp):
 def main():
     df = get_dashboard_data()
 
-    # ── Task 1: Sidebar Navigation ──
+    # Standardize column aliases for widget filtering
+    if "transaction_date" in df.columns:
+        df["date"] = pd.to_datetime(df["transaction_date"])
+    elif "date" in df.columns:
+        df["transaction_date"] = pd.to_datetime(df["date"])
+
+    if "customer_type" in df.columns:
+        df["segment"] = df["customer_type"]
+    elif "segment" in df.columns:
+        df["customer_type"] = df["segment"]
+
+    if "amount" in df.columns:
+        df["revenue"] = df["amount"]
+    elif "revenue" in df.columns:
+        df["amount"] = df["revenue"]
+
+    # ── Task 1: Sidebar Navigation & Interactive Widgets ──
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Go to",
@@ -337,25 +353,71 @@ def main():
     )
 
     st.sidebar.divider()
-    st.sidebar.header("Global Filters")
-    
-    ref_default = df["transaction_date"].max().date()
-    ref_date = st.sidebar.date_input(
-        "Reference Date",
-        value=ref_default,
-        min_value=df["transaction_date"].min().date(),
-        max_value=ref_default,
-        help="KPI calculations use a 30-day window ending on this date."
+    st.sidebar.header("Filters")
+
+    # Widget 1: Date range picker
+    date_min = df["date"].min().date() if pd.notnull(df["date"].min()) else datetime.date.today()
+    date_max = df["date"].max().date() if pd.notnull(df["date"].max()) else datetime.date.today()
+
+    date_range = st.sidebar.date_input(
+        "Date Range",
+        value=(date_min, date_max)
     )
-    
-    segments = ["All"] + sorted(df["customer_type"].unique().tolist())
-    seg_filter = st.sidebar.selectbox("Filter Segment", segments)
 
-    ref = pd.Timestamp(ref_date)
-    filtered_df = df.copy()
-    if seg_filter != "All":
-        filtered_df = filtered_df[filtered_df["customer_type"] == seg_filter]
+    # Widget 2: Multi-select for segments
+    all_segments = sorted(df["segment"].dropna().unique().tolist())
+    selected_segments = st.sidebar.multiselect(
+        "Segments", options=all_segments, default=all_segments
+    )
 
+    # Widget 3: Revenue slider
+    min_dataset_rev = int(df["revenue"].min()) if len(df) > 0 else 0
+    max_dataset_rev = int(df["revenue"].max()) if len(df) > 0 else 1000
+    min_rev, max_rev = st.sidebar.slider(
+        "Revenue Range",
+        min_value=min_dataset_rev,
+        max_value=max_dataset_rev,
+        value=(min_dataset_rev, max_dataset_rev)
+    )
+
+    # Widget 4: Radio button for payment status filter
+    statuses = ["All"] + sorted(df["payment_status"].dropna().unique().tolist()) if "payment_status" in df.columns else ["All"]
+    payment_status_filter = st.sidebar.radio("Payment Status", options=statuses, index=0)
+
+    # Task 5: Implement Filter Reset Button
+    if st.sidebar.button("Reset Filters"):
+        st.rerun()
+
+    # Task 2 & Task 3: Wire Widgets into Filter Chain with Meaningful Defaults
+    if isinstance(date_range, (list, tuple)):
+        if len(date_range) == 2:
+            start_d, end_d = date_range[0], date_range[1]
+        elif len(date_range) == 1:
+            start_d = end_d = date_range[0]
+        else:
+            start_d, end_d = date_min, date_max
+    else:
+        start_d = end_d = date_range
+
+    start_ts = pd.Timestamp(start_d)
+    end_ts = pd.Timestamp(end_d).replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    filtered_df = df[
+        (df["date"] >= start_ts)
+        & (df["date"] <= end_ts)
+        & (df["segment"].isin(selected_segments))
+        & (df["revenue"] >= min_rev)
+        & (df["revenue"] <= max_rev)
+    ]
+    if payment_status_filter != "All" and "payment_status" in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df["payment_status"] == payment_status_filter]
+
+    # Task 4: Handle Empty Filter Combinations Gracefully
+    if len(filtered_df) == 0:
+        st.warning("No data matches the current filters. Try broadening your selection.")
+        st.stop()
+
+    ref = filtered_df["date"].max() if len(filtered_df) > 0 else df["date"].max()
     curr, prior = get_kpis(filtered_df, ref)
 
     # ── Task 1, 2, 3, 5: OVERVIEW PAGE ──
@@ -395,9 +457,9 @@ def main():
         st.subheader("Performance Highlights")
         summary_c1, summary_c2 = st.columns(2)
         with summary_c1:
-            st.info(f"**Current Segment Filter**: {seg_filter} | **Reference Date**: {ref.strftime('%Y-%m-%d')}")
+            st.info(f"**Selected Segments**: {', '.join(selected_segments) if selected_segments else 'None'} | **Date Range**: {start_d} to {end_d}")
         with summary_c2:
-            st.success(f"Total revenue generated in this 30-day window is **${curr['revenue']:,.2f}** across **{curr['users']:,}** active users.")
+            st.success(f"Total revenue generated in this period is **${curr['revenue']:,.2f}** across **{curr['users']:,}** active users.")
 
         with st.expander("View Methodology Notes"):
             st.markdown("""
@@ -432,9 +494,11 @@ def main():
         
         meta_col1, meta_col2 = st.columns(2)
         with meta_col1:
-            st.metric("Peak Daily Revenue", f"${filtered_df[filtered_df['payment_status']=='Success']['amount'].max():,.2f}")
+            succ_df = filtered_df[filtered_df['payment_status']=='Success'] if 'payment_status' in filtered_df.columns else filtered_df
+            peak_rev = succ_df['amount'].max() if len(succ_df) > 0 else 0.0
+            st.metric("Peak Daily Revenue", f"${peak_rev:,.2f}")
         with meta_col2:
-            st.metric("Total Successful Transactions", f"{len(filtered_df[filtered_df['payment_status']=='Success']):,}")
+            st.metric("Total Successful Transactions", f"{len(succ_df):,}")
 
         with st.expander("View Extended Trend Data Notes"):
             st.write("Calculations are filtered dynamically according to the sidebar segment and date controls.")
@@ -465,7 +529,7 @@ def main():
         
         sub_c1, sub_c2, sub_c3 = st.columns(3)
         w30 = get_window(filtered_df, ref, 30)
-        success_w30 = w30[w30["payment_status"] == "Success"]
+        success_w30 = w30[w30["payment_status"] == "Success"] if "payment_status" in w30.columns else w30
         
         for idx, (seg_name, seg_group) in enumerate(success_w30.groupby("customer_type")):
             target_col = [sub_c1, sub_c2, sub_c3][idx % 3]
@@ -488,20 +552,25 @@ def main():
         with stat1:
             st.metric("Window Transactions", f"{len(w30):,}")
         with stat2:
-            st.metric("Total Window Value", f"${w30[w30['payment_status']=='Success']['amount'].sum():,.2f}")
+            succ_w30 = w30[w30['payment_status']=='Success'] if 'payment_status' in w30.columns else w30
+            st.metric("Total Window Value", f"${succ_w30['amount'].sum():,.2f}")
         with stat3:
             st.metric("Success Rate", f"{calculate_payment_success_rate(w30)*100:.1f}%")
 
         with st.expander("Dataset Summary Notes"):
-            st.write(f"Displaying raw transaction data ending on {ref.strftime('%Y-%m-%d')} with customer segment filter '{seg_filter}'.")
+            st.write(f"Displaying raw transaction data ending on {ref.strftime('%Y-%m-%d')} with customer segment filters: {', '.join(selected_segments)}.")
 
         st.divider()
 
         st.header("Data Table & Download")
         st.subheader("Raw Transaction Records")
 
+        # Task 2 Requirement: Record count display
+        st.write(f"Showing {len(filtered_df):,} of {len(df):,} records")
+
+        display_cols = [c for c in ["transaction_id", "customer_id", "transaction_date", "amount", "customer_type", "product", "payment_status"] if c in filtered_df.columns]
         st.dataframe(
-            w30[["transaction_id", "customer_id", "transaction_date", "amount", "customer_type", "product", "payment_status"]]
+            filtered_df[display_cols]
             .sort_values("transaction_date", ascending=False)
             .reset_index(drop=True),
             use_container_width=True,
@@ -509,7 +578,7 @@ def main():
         )
 
         with st.expander("Raw Transaction Data Explorer & Export Options"):
-            csv_data = w30.to_csv(index=False)
+            csv_data = filtered_df.to_csv(index=False)
             st.download_button(
                 label="Download Filtered CSV Data",
                 data=csv_data,
