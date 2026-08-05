@@ -1,28 +1,28 @@
 """
 TraceOps KPI Dashboard & Multi-Section Application
-Streamlit App Structure & Navigation (Assignment 2.51)
+Real-Time KPI Dashboard Development (Assignment 2.55)
 =========================================================
 Features:
-- Sidebar Navigation (Overview, Trends, Segments, Data Explorer)
-- Layout Components (st.columns & st.expander in every section)
-- Visual Hierarchy (st.title, st.header, st.subheader, st.divider)
-- Clean execution environment & dynamic path handling
-- Above-the-fold KPI card presentation
+- Cached Data Loading (@st.cache_data decorator)
+- Five Reactive Above-The-Fold KPI Metrics (Revenue, Avg Order, Records, Customers, Quality)
+- Three Dynamic Interactive Chart Types (Line chart, Bar chart, Plotly histogram)
+- Graceful Empty-State Guarding (st.warning & st.stop when 0 rows match filters)
+- End-to-End Dynamic Dataset Support (CSV & JSON upload with automatic column standardization)
 """
 
+import io
 import os
 import sys
 import datetime
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 import streamlit as st
 
 # ── 1. Page Config - MUST be the very first Streamlit command ──────────────────
 st.set_page_config(
-    page_title="Analytics Dashboard",
+    page_title="Real-Time KPI Dashboard",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -40,12 +40,10 @@ if BACKEND_PATH not in sys.path:
 try:
     from kpis.kpi_functions import (
         generate_transaction_data,
-        load_data,
+        load_data as backend_load_data,
         calculate_mau,
-        calculate_revenue_per_customer,
         calculate_churn_rate,
         calculate_payment_success_rate,
-        calculate_customer_acquisition_cost,
         RAW_DATA_PATH,
     )
     DATA_PATH = os.path.join(BACKEND_PATH, RAW_DATA_PATH)
@@ -87,12 +85,14 @@ except Exception:
         df.to_csv(filepath, index=False)
         return df
 
-    def load_data(filepath):
+    def backend_load_data(filepath):
         df = pd.read_csv(filepath)
         df['transaction_date'] = pd.to_datetime(df['transaction_date'])
         return df
 
     def calculate_mau(df, days=30, reference_date=None):
+        if len(df) == 0:
+            return 0
         if reference_date is None:
             reference_date = df['transaction_date'].max()
         start_date = reference_date - pd.Timedelta(days=days)
@@ -100,6 +100,8 @@ except Exception:
         return window['customer_id'].nunique()
 
     def calculate_churn_rate(df, period_days=30, reference_date=None):
+        if len(df) == 0:
+            return 0.0
         if reference_date is None:
             reference_date = df['transaction_date'].max()
         p1_start = reference_date - pd.Timedelta(days=2*period_days)
@@ -117,20 +119,17 @@ except Exception:
         return (df['payment_status'] == 'Success').sum() / len(df)
 
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
+# ── Custom Styling ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-/* Background & Styling */
 .stApp { background: linear-gradient(135deg, #020817 0%, #0f172a 60%, #1a0533 100%); }
 
-/* Hide Streamlit default branding */
 #MainMenu, footer, header { visibility: hidden; }
 
-/* Metric Cards */
 [data-testid="metric-container"] {
     background: rgba(15,23,42,0.85);
     border: 1px solid #1e293b;
@@ -141,251 +140,148 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     transition: border-color .2s;
 }
 [data-testid="metric-container"]:hover { border-color: #3b82f6; }
-[data-testid="stMetricLabel"]  { color: #94a3b8 !important; font-size: 0.8rem !important; font-weight: 600 !important; }
+[data-testid="stMetricLabel"]  { color: #94a3b8 !important; font-size: 0.85rem !important; font-weight: 600 !important; }
 [data-testid="stMetricValue"]  { color: #f1f5f9 !important; font-size: 1.8rem !important; font-weight: 800 !important; }
 
-/* Sidebar styling */
 [data-testid="stSidebar"] { background: #0f172a !important; border-right: 1px solid #1e293b; }
 [data-testid="stSidebar"] label { color: #94a3b8 !important; }
 
-/* Divider styling */
 hr { border-color: #1e293b !important; margin: 1.2rem 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Cached Data Loader ────────────────────────────────────────────────────────
+# ── Task 3: Apply @st.cache_data to Data Loading ──────────────────────────────
+@st.cache_data
+def load_data(file_bytes, file_name):
+    """Load and return DataFrame. Cached by file content hash and filename."""
+    if isinstance(file_bytes, bytes):
+        buffer = io.BytesIO(file_bytes)
+    else:
+        buffer = file_bytes
+
+    if file_name.endswith(".csv"):
+        return pd.read_csv(buffer)
+    elif file_name.endswith(".json"):
+        return pd.read_json(buffer)
+    else:
+        raise ValueError("Unsupported file format. Please upload a CSV or JSON file.")
+
+
 @st.cache_data(ttl=3600)
 def get_dashboard_data():
+    """Load default dataset from backend path or generate sample data."""
     if not os.path.exists(DATA_PATH):
         generate_transaction_data(DATA_PATH)
-    return load_data(DATA_PATH)
+    return backend_load_data(DATA_PATH)
 
 
-# Helper functions
-def get_window(df: pd.DataFrame, ref: pd.Timestamp, days: int) -> pd.DataFrame:
-    start = ref - pd.Timedelta(days=days)
-    return df[(df["transaction_date"] > start) & (df["transaction_date"] <= ref)]
+# ── Task 5: End-to-End Execution Without Hardcoded Data ─────────────────────────
+def standardize_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Standardizes dataset columns to ensure smooth end-to-end operation with any uploaded file."""
+    df = df.copy()
 
-def calculate_pct_change(curr, prior):
-    if not prior or prior == 0:
-        return 0.0
-    return ((curr - prior) / abs(prior)) * 100
+    # Standardize date column
+    if "transaction_date" in df.columns:
+        df["date"] = pd.to_datetime(df["transaction_date"], errors="coerce")
+    elif "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    else:
+        date_candidates = [c for c in df.columns if "date" in c.lower() or "time" in c.lower()]
+        if date_candidates:
+            df["date"] = pd.to_datetime(df[date_candidates[0]], errors="coerce")
+        else:
+            df["date"] = pd.date_range(end=pd.Timestamp.today(), periods=len(df), freq="D")
+        df["transaction_date"] = df["date"]
 
-def get_kpis(df: pd.DataFrame, ref: pd.Timestamp):
-    prior_ref = ref - pd.Timedelta(days=30)
-    
-    def calc_rev(r):
-        w = get_window(df, r, 30)
-        return float(w[w["payment_status"] == "Success"]["amount"].sum())
-    
-    def calc_users(r):
-        return calculate_mau(df, days=30, reference_date=r)
-    
-    def calc_aov(r):
-        w = get_window(df, r, 30)
-        s = w[w["payment_status"] == "Success"]["amount"]
-        return float(s.mean()) if len(s) > 0 else 0.0
-    
-    def calc_churn(r):
-        return calculate_churn_rate(df, period_days=30, reference_date=r) * 100
-    
-    def calc_satisfaction(r):
-        w = get_window(df, r, 30)
-        psr = calculate_payment_success_rate(w) if len(w) > 0 else 0.0
-        return round(psr * 5, 2)
+    # Fill NaT in date if any
+    if df["date"].isnull().any():
+        df["date"] = df["date"].fillna(pd.Timestamp.today())
 
-    curr = {
-        "revenue": calc_rev(ref),
-        "users": calc_users(ref),
-        "aov": calc_aov(ref),
-        "churn": calc_churn(ref),
-        "satisfaction": calc_satisfaction(ref)
-    }
-    prior = {
-        "revenue": calc_rev(prior_ref),
-        "users": calc_users(prior_ref),
-        "aov": calc_aov(prior_ref),
-        "churn": calc_churn(prior_ref),
-        "satisfaction": calc_satisfaction(prior_ref)
-    }
-    return curr, prior
+    # Standardize revenue / amount column
+    if "amount" in df.columns:
+        df["revenue"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0.0)
+    elif "revenue" in df.columns:
+        df["revenue"] = pd.to_numeric(df["revenue"], errors="coerce").fillna(0.0)
+        df["amount"] = df["revenue"]
+    else:
+        num_cols = df.select_dtypes(include="number").columns
+        if len(num_cols) > 0:
+            df["revenue"] = pd.to_numeric(df[num_cols[0]], errors="coerce").fillna(0.0)
+            df["amount"] = df["revenue"]
+        else:
+            df["revenue"] = 0.0
+            df["amount"] = 0.0
 
+    # Standardize segment / customer_type column
+    if "customer_type" in df.columns:
+        df["segment"] = df["customer_type"].astype(str)
+    elif "segment" in df.columns:
+        df["segment"] = df["segment"].astype(str)
+        df["customer_type"] = df["segment"]
+    else:
+        cat_cols = df.select_dtypes(include=["object", "category"]).columns
+        if len(cat_cols) > 0:
+            df["segment"] = df[cat_cols[0]].astype(str)
+            df["customer_type"] = df[cat_cols[0]].astype(str)
+        else:
+            df["segment"] = "General"
+            df["customer_type"] = "General"
 
-# Plotly plot configurations
-PLOTLY_THEME = dict(
-    plot_bgcolor="rgba(0,0,0,0)",
-    paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#94a3b8", family="Inter"),
-    margin=dict(l=10, r=10, t=35, b=10),
-    hovermode="x unified",
-    xaxis=dict(gridcolor="#1e293b", linecolor="#1e293b"),
-    yaxis=dict(gridcolor="#1e293b", linecolor="rgba(0,0,0,0)"),
-)
+    # Standardize customer_id
+    if "customer_id" not in df.columns:
+        id_cols = [c for c in df.columns if "id" in c.lower() or "user" in c.lower() or "customer" in c.lower()]
+        if id_cols:
+            df["customer_id"] = df[id_cols[0]]
+        else:
+            df["customer_id"] = [f"CUST_{i+1:04d}" for i in range(len(df))]
 
-def create_revenue_chart(df: pd.DataFrame, ref: pd.Timestamp):
-    dates = pd.date_range(end=ref, periods=30, freq="D")
-    daily = (
-        df[df["payment_status"] == "Success"]
-        .set_index("transaction_date")
-        .resample("D")["amount"].sum()
-        .reindex(dates, fill_value=0)
-    )
-    fig = go.Figure([
-        go.Scatter(
-            x=daily.index, y=daily.values,
-            mode="lines", fill="tozeroy",
-            line=dict(color="#3b82f6", width=2.5),
-            fillcolor="rgba(59,130,246,0.10)",
-            name="Revenue",
-            hovertemplate="<b>%{x|%d %b}</b><br>Revenue: $%{y:,.0f}<extra></extra>",
-        )
-    ])
-    fig.update_layout(
-        title=dict(text="Daily Revenue (30-Day Trend)", font=dict(size=14, color="#f1f5f9")),
-        height=280,
-        yaxis=dict(tickprefix="$", tickformat=",.0f", gridcolor="#1e293b"),
-        **{k: v for k, v in PLOTLY_THEME.items() if k not in ("yaxis",)}
-    )
-    return fig
-
-def create_users_chart(df: pd.DataFrame, ref: pd.Timestamp):
-    dates = pd.date_range(end=ref, periods=30, freq="D")
-    daily = (
-        df[df["payment_status"] == "Success"]
-        .set_index("transaction_date")
-        .resample("D")["customer_id"].nunique()
-        .reindex(dates, fill_value=0)
-    )
-    fig = go.Figure([
-        go.Scatter(
-            x=daily.index, y=daily.values,
-            mode="lines+markers",
-            line=dict(color="#10b981", width=2),
-            marker=dict(size=3, color="#10b981"),
-            name="Active Users",
-            hovertemplate="<b>%{x|%d %b}</b><br>Users: %{y:,}<extra></extra>",
-        )
-    ])
-    fig.update_layout(
-        title=dict(text="Daily Active Users (30-Day Trend)", font=dict(size=14, color="#f1f5f9")),
-        height=280, **PLOTLY_THEME
-    )
-    return fig
-
-def create_segment_chart(df: pd.DataFrame, ref: pd.Timestamp):
-    w = get_window(df, ref, 30)
-    seg = (
-        w[w["payment_status"] == "Success"]
-        .groupby("customer_type")["amount"].sum()
-        .reset_index()
-        .rename(columns={"customer_type": "Segment", "amount": "Revenue"})
-        .sort_values("Revenue", ascending=False)
-    )
-    colors = {"Enterprise": "#3b82f6", "SMB": "#10b981", "Startup": "#8b5cf6"}
-    fig = go.Figure([
-        go.Bar(
-            x=seg["Segment"], y=seg["Revenue"],
-            marker=dict(color=[colors.get(s, "#64748b") for s in seg["Segment"]]),
-            hovertemplate="<b>%{x}</b><br>Revenue: $%{y:,.0f}<extra></extra>",
-        )
-    ])
-    fig.update_layout(
-        title=dict(text="Revenue by Customer Segment", font=dict(size=14, color="#f1f5f9")),
-        height=280,
-        yaxis=dict(tickprefix="$", gridcolor="#1e293b"),
-        bargap=0.3,
-        **{k: v for k, v in PLOTLY_THEME.items() if k not in ("yaxis",)}
-    )
-    return fig
-
-def create_product_chart(df: pd.DataFrame, ref: pd.Timestamp):
-    w = get_window(df, ref, 30)
-    prod = (
-        w[w["payment_status"] == "Success"]
-        .groupby("product")["amount"].sum()
-        .reset_index()
-    )
-    colors = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b"]
-    fig = go.Figure([
-        go.Pie(
-            labels=prod["product"],
-            values=prod["amount"],
-            hole=0.55,
-            marker=dict(colors=colors[:len(prod)], line=dict(color="#0f172a", width=2)),
-            hovertemplate="<b>%{label}</b><br>$%{value:,.0f} (%{percent})<extra></extra>",
-        )
-    ])
-    fig.update_layout(
-        title=dict(text="Product Revenue Mix", font=dict(size=14, color="#f1f5f9")),
-        height=280,
-        legend=dict(font=dict(color="#94a3b8"), bgcolor="rgba(0,0,0,0)"),
-        **{k: v for k, v in PLOTLY_THEME.items() if k not in ("xaxis", "yaxis", "hovermode", "legend")}
-    )
-    return fig
+    return df
 
 
 # ── MAIN APPLICATION RUNNER ───────────────────────────────────────────────────
 def main():
-    df = get_dashboard_data()
+    # Sidebar File Upload & Dataset Selection
+    st.sidebar.title("Data Source & Upload")
+    uploaded_file_sidebar = st.sidebar.file_uploader(
+        "Upload CSV or JSON",
+        type=["csv", "json"],
+        key="sidebar_file_uploader"
+    )
 
-    # Standardize column aliases for widget filtering
-    if "transaction_date" in df.columns:
-        df["date"] = pd.to_datetime(df["transaction_date"])
-    elif "date" in df.columns:
-        df["transaction_date"] = pd.to_datetime(df["date"])
+    if uploaded_file_sidebar is not None:
+        try:
+            raw_data = load_data(uploaded_file_sidebar.getvalue(), uploaded_file_sidebar.name)
+            df = standardize_df(raw_data)
+            st.sidebar.success(f"Using uploaded dataset: {uploaded_file_sidebar.name}")
+        except Exception as e:
+            st.sidebar.error(f"Error loading file: {e}")
+            raw_data = get_dashboard_data()
+            df = standardize_df(raw_data)
+    elif "uploaded_df" in st.session_state and st.session_state["uploaded_df"] is not None:
+        df = standardize_df(st.session_state["uploaded_df"])
+    else:
+        raw_data = get_dashboard_data()
+        df = standardize_df(raw_data)
 
-    if "customer_type" in df.columns:
-        df["segment"] = df["customer_type"]
-    elif "segment" in df.columns:
-        df["customer_type"] = df["segment"]
-
-    if "amount" in df.columns:
-        df["revenue"] = df["amount"]
-    elif "revenue" in df.columns:
-        df["amount"] = df["revenue"]
-
-    # ── Task 1, Task 2 & Task 5: Initialise Session State with Safe Defaults, Descriptive Names & Inline Documentation ──
-    # "selected_segment" - stores the user's segment choice from Step 1
-    # so it survives reruns when the user interacts with Step 2 widgets.
+    # Initialize Session State
     if "selected_segment" not in st.session_state:
         st.session_state["selected_segment"] = "All"
-
-    # "workflow_step" - tracks which step the user has completed.
-    # Prevents Step 2 from displaying before Step 1 is confirmed.
     if "workflow_step" not in st.session_state:
         st.session_state["workflow_step"] = 1
-
-    # "analysis_result" - caches the computation from Step 2 so
-    # it does not recompute when unrelated widgets are changed.
     if "analysis_result" not in st.session_state:
         st.session_state["analysis_result"] = None
 
-    # "filter_date_start" - stores start date filter to maintain continuity across reruns
-    if "filter_date_start" not in st.session_state:
-        st.session_state["filter_date_start"] = None
-
-    # "filter_date_end" - stores end date filter to maintain continuity across reruns
-    if "filter_date_end" not in st.session_state:
-        st.session_state["filter_date_end"] = None
-
-    # "computed_revenue" - caches calculated revenue for segment analysis
-    if "computed_revenue" not in st.session_state:
-        st.session_state["computed_revenue"] = 0.0
-
-    # "export_ready" - tracks whether segment analysis data is ready for export
-    if "export_ready" not in st.session_state:
-        st.session_state["export_ready"] = False
-
-    # ── Task 1: Sidebar Navigation & Interactive Widgets ──
+    # Sidebar Navigation
+    st.sidebar.divider()
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Go to",
-        ["Overview", "Workflow Analysis", "Trends", "Segments", "Data Explorer", "Data Upload"]
+        ["Overview & KPI Dashboard", "Workflow Analysis", "Trends", "Segments", "Data Explorer", "Data Upload"]
     )
 
     st.sidebar.divider()
-    st.sidebar.header("Filters & Reset Controls")
+    st.sidebar.header("Filters & Controls")
 
     # Widget 1: Date range picker
     date_min = df["date"].min().date() if pd.notnull(df["date"].min()) else datetime.date.today()
@@ -416,19 +312,19 @@ def main():
     statuses = ["All"] + sorted(df["payment_status"].dropna().unique().tolist()) if "payment_status" in df.columns else ["All"]
     payment_status_filter = st.sidebar.radio("Payment Status", options=statuses, index=0)
 
-    # Task 4: Implement Session State & Filter Reset Buttons
+    # Reset Buttons
     col_reset1, col_reset2 = st.sidebar.columns(2)
     with col_reset1:
         if st.button("Reset Filters"):
             st.rerun()
     with col_reset2:
-        if st.button("Reset Workflow"):
-            for key in ["selected_segment", "workflow_step", "analysis_result", "filter_date_start", "filter_date_end", "computed_revenue", "export_ready"]:
+        if st.button("Reset Session"):
+            for key in ["selected_segment", "workflow_step", "analysis_result", "uploaded_df"]:
                 if key in st.session_state:
                     del st.session_state[key]
             st.rerun()
 
-    # Task 2 & Task 3: Wire Widgets into Filter Chain with Meaningful Defaults
+    # Wire Widgets into Filter Chain
     if isinstance(date_range, (list, tuple)):
         if len(date_range) == 2:
             start_d, end_d = date_range[0], date_range[1]
@@ -452,22 +348,92 @@ def main():
     if payment_status_filter != "All" and "payment_status" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["payment_status"] == payment_status_filter]
 
-    # Task 4: Handle Empty Filter Combinations Gracefully
+    # ── Task 4: Handle Empty Filtered Results Gracefully ───────────────────────
     if len(filtered_df) == 0:
-        st.warning("No data matches the current filters. Try broadening your selection.")
+        st.warning("No data matches current filters. Broaden your selection.")
         st.stop()
 
-    ref = filtered_df["date"].max() if len(filtered_df) > 0 else df["date"].max()
-    curr, prior = get_kpis(filtered_df, ref)
+    # ── OVERVIEW & LIVE KPI DASHBOARD PAGE ──
+    if page == "Overview & KPI Dashboard":
+        st.title("Real-Time Operational KPI Dashboard")
+        st.write("Dynamic business analytics driven by `@st.cache_data` and filtered data.")
 
-    # ── Task 3: MULTI-STEP WORKFLOW PAGE ──
-    if page == "Workflow Analysis":
+        # ── Task 1: Display Five Reactive KPI Metrics ──
+        st.header("Key Performance Indicators")
+        
+        total_revenue = filtered_df["revenue"].sum()
+        avg_order = filtered_df["revenue"].mean() if len(filtered_df) > 0 else 0.0
+        row_count = len(filtered_df)
+        unique_customers = filtered_df["customer_id"].nunique() if "customer_id" in filtered_df.columns else len(filtered_df)
+        
+        total_cells = filtered_df.shape[0] * filtered_df.shape[1]
+        null_count = filtered_df.isnull().sum().sum()
+        null_pct = (null_count / total_cells * 100) if total_cells > 0 else 0.0
+
+        col1, col2, col3, col4, col5 = st.columns(5)
+        with col1:
+            st.metric("Revenue", f"${total_revenue:,.0f}")
+        with col2:
+            st.metric("Avg Order", f"${avg_order:,.0f}")
+        with col3:
+            st.metric("Records", f"{row_count:,}")
+        with col4:
+            st.metric("Customers", f"{unique_customers:,}")
+        with col5:
+            st.metric("Quality", f"{100 - null_pct:.1f}%")
+
+        st.divider()
+
+        # ── Task 2: Include Three Chart Types ──
+        st.header("Interactive Analytics Visualizations")
+
+        chart_col1, chart_col2 = st.columns(2)
+        with chart_col1:
+            # Chart 1: Line chart (trend)
+            st.subheader("Revenue Over Time")
+            trend = filtered_df.groupby("date")["revenue"].sum().reset_index()
+            st.line_chart(trend.set_index("date"))
+
+        with chart_col2:
+            # Chart 2: Bar chart (comparison)
+            st.subheader("Revenue by Segment")
+            seg = filtered_df.groupby("segment")["revenue"].sum().reset_index()
+            st.bar_chart(seg.set_index("segment"))
+
+        st.divider()
+
+        # Chart 3: Plotly histogram (distribution)
+        st.subheader("Order Value Distribution")
+        fig = px.histogram(
+            filtered_df,
+            x="revenue",
+            nbins=30,
+            title="Order Value Distribution",
+            color_discrete_sequence=["#3b82f6"]
+        )
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#94a3b8", family="Inter"),
+            margin=dict(l=10, r=10, t=35, b=10),
+            xaxis=dict(gridcolor="#1e293b", title="Revenue / Order Amount"),
+            yaxis=dict(gridcolor="#1e293b", title="Count")
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        with st.expander("Dashboard Performance & Caching Info"):
+            st.write(
+                "Data loading is optimized using `@st.cache_data`. "
+                "All metric calculations and chart visualizations update in memory from `filtered_df`."
+            )
+
+    # ── WORKFLOW ANALYSIS PAGE ──
+    elif page == "Workflow Analysis":
         st.title("Multi-Step Workflow Analysis")
         st.write("Demonstrating Streamlit session state persistence across widget interactions.")
 
-        # Step 1: Select Segment
         st.header("Step 1: Select Segment")
-        segment_options = ["All", "Enterprise", "Mid-Market", "SMB", "Startup"]
+        segment_options = ["All"] + all_segments
         current_chosen = st.session_state.get("selected_segment", "All")
         default_index = segment_options.index(current_chosen) if current_chosen in segment_options else 0
 
@@ -481,292 +447,101 @@ def main():
             st.session_state["selected_segment"] = segment
             st.session_state["workflow_step"] = 2
 
-        # Step 2: Show analysis (only if step 1 is complete)
         if st.session_state["workflow_step"] >= 2:
             st.divider()
             st.header("Step 2: Segment Analysis")
             chosen = st.session_state["selected_segment"]
-            st.write("Analysing segment: " + chosen)
+            st.write(f"Analysing segment: **{chosen}**")
 
-            if chosen == "All":
-                analysis_df = filtered_df
-            else:
-                analysis_df = filtered_df[filtered_df["segment"] == chosen]
+            analysis_df = filtered_df if chosen == "All" else filtered_df[filtered_df["segment"] == chosen]
 
-            # Compute and store results in session state
             result = float(analysis_df["revenue"].sum()) if len(analysis_df) > 0 else 0.0
             st.session_state["analysis_result"] = result
-            st.session_state["computed_revenue"] = result
-            st.session_state["export_ready"] = True
-            
-            st.metric("Total Revenue", f"${result:,.0f}")
 
             wf_c1, wf_c2, wf_c3 = st.columns(3)
             with wf_c1:
-                st.metric("Unique Customers", f"{analysis_df['customer_id'].nunique():,}")
+                st.metric("Total Revenue", f"${result:,.0f}")
             with wf_c2:
-                st.metric("Transaction Count", f"{len(analysis_df):,}")
+                st.metric("Unique Customers", f"{analysis_df['customer_id'].nunique():,}")
             with wf_c3:
-                avg_rev = float(analysis_df["revenue"].mean()) if len(analysis_df) > 0 else 0.0
-                st.metric("Avg Order Value", f"${avg_rev:,.2f}")
+                st.metric("Record Count", f"{len(analysis_df):,}")
 
             with st.expander("View Filtered Segment Records"):
-                st.dataframe(
-                    analysis_df[["transaction_id", "customer_id", "transaction_date", "revenue", "segment", "product"]].head(20),
-                    use_container_width=True
-                )
+                st.dataframe(analysis_df.head(20), use_container_width=True)
 
-    # ── OVERVIEW PAGE ──
-    elif page == "Overview":
-        # Task 3: Title (once per page)
-        st.title("Business Overview")
-
-        # Task 5: Primary content (KPI cards) loaded ABOVE THE FOLD at the top
-        st.header("Key Performance Indicators")
-        st.subheader("30-Day Rolling Business Metrics")
-
-        # Task 2: st.columns for KPI cards side-by-side
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            st.metric("Revenue", f"${curr['revenue']/1e6:.2f}M", f"{calculate_pct_change(curr['revenue'], prior['revenue']):+.1f}%")
-        with col2:
-            st.metric("Active Users", f"{curr['users']:,}", f"{calculate_pct_change(curr['users'], prior['users']):+.1f}%")
-        with col3:
-            st.metric("Avg Order Value", f"${curr['aov']:,.2f}", f"{calculate_pct_change(curr['aov'], prior['aov']):+.1f}%")
-        with col4:
-            st.metric("Churn Rate", f"{curr['churn']:.1f}%", f"{calculate_pct_change(curr['churn'], prior['churn']):+.1f}%", delta_color="inverse")
-        with col5:
-            st.metric("Satisfaction", f"{curr['satisfaction']:.2f}/5", f"{calculate_pct_change(curr['satisfaction'], prior['satisfaction']):+.1f}%")
-
-        # Task 2: st.expander for progressive disclosure & methodology
-        with st.expander("About These Metrics"):
-            st.write(
-                "Revenue is calculated as the sum of all successful transaction amounts for the current 30-day window. "
-                "Active Users (MAU) represents the count of unique customers with transactions within 30 days. "
-                "Avg Order Value (AOV) is the mean transaction amount. "
-                "Churn Rate represents customers who made a purchase in the prior period but had no activity in the current period."
-            )
-
-        st.divider()
-
-        st.header("Executive Summary")
-        st.subheader("Performance Highlights")
-        summary_c1, summary_c2 = st.columns(2)
-        with summary_c1:
-            st.info(f"**Selected Segments**: {', '.join(selected_segments) if selected_segments else 'None'} | **Date Range**: {start_d} to {end_d}")
-        with summary_c2:
-            st.success(f"Total revenue generated in this period is **${curr['revenue']:,.2f}** across **{curr['users']:,}** active users.")
-
-        with st.expander("View Methodology Notes"):
-            st.markdown("""
-            - **Data Layer**: Backend module `Backend/kpis/kpi_functions.py`
-            - **Comparison Window**: Current 30-day period vs prior 30-day period
-            - **Delta Calculations**: Inverse delta color used for Churn Rate where a negative change indicates improvement.
-            """)
-
-    # ── Task 1, 2, 3: TRENDS PAGE ──
+    # ── TRENDS PAGE ──
     elif page == "Trends":
         st.title("Trend Analysis")
 
-        st.header("Revenue Trends")
-        st.subheader("Monthly Revenue (Last 30 Days)")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.plotly_chart(create_revenue_chart(filtered_df, ref), use_container_width=True)
-        with col2:
-            st.plotly_chart(create_users_chart(filtered_df, ref), use_container_width=True)
+        st.header("Revenue & Activity Trends")
+        t_col1, t_col2 = st.columns(2)
+        with t_col1:
+            st.subheader("Revenue Trend")
+            trend_df = filtered_df.groupby("date")["revenue"].sum().reset_index()
+            st.line_chart(trend_df.set_index("date"))
+        with t_col2:
+            st.subheader("Customer Activity Trend")
+            cust_df = filtered_df.groupby("date")["customer_id"].nunique().reset_index()
+            st.line_chart(cust_df.set_index("date"))
 
-        with st.expander("Trend Analysis Insights & Methodology"):
-            st.write(
-                "Time-series charts track daily performance over the 30 days leading up to the selected reference date. "
-                "The left chart highlights total daily dollar revenue, while the right chart tracks unique daily active users."
-            )
-
-        st.divider()
-
-        st.header("Customer Metrics")
-        st.subheader("Active Customers Over Time")
-        
-        meta_col1, meta_col2 = st.columns(2)
-        with meta_col1:
-            succ_df = filtered_df[filtered_df['payment_status']=='Success'] if 'payment_status' in filtered_df.columns else filtered_df
-            peak_rev = succ_df['amount'].max() if len(succ_df) > 0 else 0.0
-            st.metric("Peak Daily Revenue", f"${peak_rev:,.2f}")
-        with meta_col2:
-            st.metric("Total Successful Transactions", f"{len(succ_df):,}")
-
-        with st.expander("View Extended Trend Data Notes"):
-            st.write("Calculations are filtered dynamically according to the sidebar segment and date controls.")
-
-    # ── Task 1, 2, 3: SEGMENTS PAGE ──
+    # ── SEGMENTS PAGE ──
     elif page == "Segments":
         st.title("Segment Breakdown")
 
-        st.header("Customer & Product Distribution")
-        st.subheader("Revenue by Segment and Product Mix")
+        st.header("Segment Comparison")
+        seg_df = filtered_df.groupby("segment")["revenue"].agg(["sum", "mean", "count"]).reset_index()
+        seg_df.columns = ["Segment", "Total Revenue", "Average Order", "Transactions"]
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.plotly_chart(create_segment_chart(filtered_df, ref), use_container_width=True)
-        with col2:
-            st.plotly_chart(create_product_chart(filtered_df, ref), use_container_width=True)
+        st.dataframe(seg_df, use_container_width=True)
+        st.bar_chart(seg_df.set_index("Segment")["Total Revenue"])
 
-        with st.expander("Segment & Product Classification Notes"):
-            st.write(
-                "Customer segments are categorized into Enterprise, SMB, and Startup tiers. "
-                "Product revenue mix displays distribution across Starter, Pro, Enterprise, and Add-on packages."
-            )
-
-        st.divider()
-
-        st.header("Segment Performance Breakdown")
-        st.subheader("Revenue Share Analysis")
-        
-        sub_c1, sub_c2, sub_c3 = st.columns(3)
-        w30 = get_window(filtered_df, ref, 30)
-        success_w30 = w30[w30["payment_status"] == "Success"] if "payment_status" in w30.columns else w30
-        
-        for idx, (seg_name, seg_group) in enumerate(success_w30.groupby("customer_type")):
-            target_col = [sub_c1, sub_c2, sub_c3][idx % 3]
-            with target_col:
-                st.metric(f"{seg_name} Revenue", f"${seg_group['amount'].sum():,.2f}", f"{len(seg_group):,} orders")
-
-        with st.expander("View Breakdown Methodology"):
-            st.write("Segment totals are aggregated over successful transactions within the selected 30-day window.")
-
-    # ── Task 1, 2, 3: DATA EXPLORER PAGE ──
+    # ── DATA EXPLORER PAGE ──
     elif page == "Data Explorer":
         st.title("Data Explorer")
+        st.write(f"Displaying **{len(filtered_df):,}** filtered records out of **{len(df):,}** total rows.")
 
-        st.header("Transaction Dataset & Export")
-        st.subheader("Filtered Transactions Overview")
+        st.dataframe(filtered_df, use_container_width=True, height=350)
 
-        w30 = get_window(filtered_df, ref, 30)
-        
-        stat1, stat2, stat3 = st.columns(3)
-        with stat1:
-            st.metric("Window Transactions", f"{len(w30):,}")
-        with stat2:
-            succ_w30 = w30[w30['payment_status']=='Success'] if 'payment_status' in w30.columns else w30
-            st.metric("Total Window Value", f"${succ_w30['amount'].sum():,.2f}")
-        with stat3:
-            st.metric("Success Rate", f"{calculate_payment_success_rate(w30)*100:.1f}%")
-
-        with st.expander("Dataset Summary Notes"):
-            st.write(f"Displaying raw transaction data ending on {ref.strftime('%Y-%m-%d')} with customer segment filters: {', '.join(selected_segments)}.")
-
-        st.divider()
-
-        st.header("Data Table & Download")
-        st.subheader("Raw Transaction Records")
-
-        # Task 2 Requirement: Record count display
-        st.write(f"Showing {len(filtered_df):,} of {len(df):,} records")
-
-        display_cols = [c for c in ["transaction_id", "customer_id", "transaction_date", "amount", "customer_type", "product", "payment_status"] if c in filtered_df.columns]
-        st.dataframe(
-            filtered_df[display_cols]
-            .sort_values("transaction_date", ascending=False)
-            .reset_index(drop=True),
-            use_container_width=True,
-            height=320
+        csv_data = filtered_df.to_csv(index=False)
+        st.download_button(
+            label="Download Filtered Data (CSV)",
+            data=csv_data,
+            file_name="filtered_dashboard_data.csv",
+            mime="text/csv"
         )
 
-        with st.expander("Raw Transaction Data Explorer & Export Options"):
-            csv_data = filtered_df.to_csv(index=False)
-            st.download_button(
-                label="Download Filtered CSV Data",
-                data=csv_data,
-                file_name=f"traceops_transactions_{ref.strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
-            st.write("Click above to download the currently displayed dataset in standard CSV format.")
-
-    # ── Task 1, 2, 3, 4, 5: DATA UPLOAD PAGE ──
+    # ── DATA UPLOAD PAGE ──
     elif page == "Data Upload":
-        st.title("Dataset Upload & Dynamic Preview System")
+        st.title("Dataset Upload & Dynamic Integration System")
 
-        st.header("Upload Custom Dataset")
-        st.subheader("Accepts CSV and JSON formats")
+        st.write("Upload any CSV or JSON dataset to populate the dashboard dynamically.")
+        file_uploaded = st.file_uploader("Upload dataset file", type=["csv", "json"], key="page_file_uploader")
 
-        # Task 1 & Task 4: File Uploader widget & Error Handling
-        uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "json"])
-
-        if uploaded_file is not None:
+        if file_uploaded is not None:
             try:
-                if uploaded_file.name.endswith(".csv"):
-                    df_upload = pd.read_csv(uploaded_file)
-                elif uploaded_file.name.endswith(".json"):
-                    df_upload = pd.read_json(uploaded_file)
-                else:
-                    st.error("Unsupported file type. Please upload CSV or JSON.")
-                    st.stop()
-
-                if len(df_upload) == 0:
-                    st.warning("Uploaded file is empty. Please check your data.")
-                    st.stop()
-
-                st.success(
-                    "File loaded: "
-                    + uploaded_file.name
-                    + " ("
-                    + str(len(df_upload))
-                    + " rows, "
-                    + str(len(df_upload.columns))
-                    + " columns)"
-                )
+                # Task 3: Load using cached function load_data
+                df_upload = load_data(file_uploaded.getvalue(), file_uploaded.name)
                 st.session_state["uploaded_df"] = df_upload
 
+                st.success(f"File uploaded successfully: **{file_uploaded.name}** ({len(df_upload):,} rows, {len(df_upload.columns)} columns)")
+
+                st.subheader("Dataset Preview (First 10 Rows)")
+                st.dataframe(df_upload.head(10), use_container_width=True)
+
+                st.subheader("Column Summary")
+                summary = pd.DataFrame({
+                    "Column": df_upload.columns,
+                    "Data Type": df_upload.dtypes.astype(str).values,
+                    "Non-Null Count": df_upload.notnull().sum().values,
+                    "Null Count": df_upload.isnull().sum().values
+                })
+                st.dataframe(summary, use_container_width=True)
+
             except Exception as e:
-                st.error("Could not read this file. Please check the format and try again.")
-                st.stop()
-
-            # Task 2: Automatic Preview and Column Summary
-            st.header("Dataset Preview")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Rows", f"{len(df_upload):,}")
-            with col2:
-                st.metric("Columns", str(len(df_upload.columns)))
-            with col3:
-                total_nulls = df_upload.isnull().sum().sum()
-                total_cells = df_upload.shape[0] * df_upload.shape[1]
-                null_pct = (total_nulls / total_cells) * 100 if total_cells > 0 else 0.0
-                st.metric("Null %", f"{null_pct:.1f}%")
-
-            st.divider()
-
-            # First 10 rows
-            st.subheader("First 10 Rows")
-            st.dataframe(df_upload.head(10), use_container_width=True)
-
-            # Column summary
-            st.subheader("Column Summary")
-            summary = pd.DataFrame({
-                "Column": df_upload.columns,
-                "Type": df_upload.dtypes.astype(str).values,
-                "Non-Null": df_upload.notnull().sum().values,
-                "Null Count": df_upload.isnull().sum().values,
-                "Null %": (df_upload.isnull().sum() / len(df_upload) * 100).round(1).values
-            })
-            st.dataframe(summary, use_container_width=True)
-
-            # Task 3: Basic Descriptive Statistics
-            st.subheader("Descriptive Statistics")
-            st.dataframe(df_upload.describe(), use_container_width=True)
-
-            # Task 5: Ensure Data Is Usable Downstream (Quick Exploration)
-            st.subheader("Quick Exploration")
-            numeric_cols = df_upload.select_dtypes(include="number").columns.tolist()
-            if numeric_cols:
-                selected_col = st.selectbox("Select a column to visualise", numeric_cols)
-                st.bar_chart(df_upload[selected_col].value_counts().head(20))
-
+                st.error(f"Error processing file: {e}")
         else:
-            st.info("Upload a CSV or JSON file to begin.")
+            st.info("Upload a CSV or JSON dataset above to view preview and statistics.")
 
 
 if __name__ == "__main__":
     main()
-
