@@ -1,8 +1,13 @@
 """
-dashboard/app.py  –  TraceOps KPI Dashboard & Multi-Section Application
+TraceOps KPI Dashboard & Multi-Section Application
 Streamlit App Structure & Navigation (Assignment 2.51)
 =========================================================
-Frontend dashboard that imports from the Backend data layer.
+Features:
+- Sidebar Navigation (Overview, Trends, Segments, Data Explorer)
+- Layout Components (st.columns & st.expander in every section)
+- Visual Hierarchy (st.title, st.header, st.subheader, st.divider)
+- Clean execution environment & dynamic path handling
+- Above-the-fold KPI card presentation
 """
 
 import os
@@ -25,7 +30,9 @@ st.set_page_config(
 
 # ── 2. Dynamic Path Resolution for Backend ─────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-BACKEND_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "Backend"))
+BACKEND_PATH = os.path.join(BASE_DIR, "Backend")
+if not os.path.exists(BACKEND_PATH):
+    BACKEND_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "Backend"))
 
 if BACKEND_PATH not in sys.path:
     sys.path.insert(0, BACKEND_PATH)
