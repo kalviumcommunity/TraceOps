@@ -73,6 +73,10 @@ output/*
 !output/funnel_analysis.txt
 !output/db_integration_summary.txt
 !output/sql_filtering_grouping_aggregation_summary.txt
+!data/raw/test.csv
+!data/raw/latest.csv
+!output/cleaned.csv
+!output/aggregated.csv
 
 # Database files - exclude sqlite binary databases
 *.db

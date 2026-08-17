@@ -1,0 +1,8 @@
+customer_id,order_id,amount,segment
+C101,O1001,150.50,Enterprise
+C102,O1002,299.99,SMB
+C103,O1003,-50.00,SMB
+C104,O1004,500.00,Enterprise
+,O1005,120.00,Consumer
+C105,O1006,invalid_amount,Consumer
+C106,O1007,75.25,Consumer
