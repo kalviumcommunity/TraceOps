@@ -1,0 +1,6 @@
+customer_id,order_id,amount,segment
+C201,O2001,450.0,Enterprise
+C202,O2002,125.5,SMB
+C203,O2003,89.99,Consumer
+C204,O2004,1200.0,Enterprise
+C206,O2007,210.0,Consumer
