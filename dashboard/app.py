@@ -30,6 +30,16 @@ BACKEND_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "Backend"))
 if BACKEND_PATH not in sys.path:
     sys.path.insert(0, BACKEND_PATH)
 
+ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+try:
+    from alert_config import ALERT_THRESHOLDS, check_alerts
+except ImportError:
+    ALERT_THRESHOLDS = {}
+    def check_alerts(m, t=None): return []
+
 try:
     from kpis.kpi_functions import (
         generate_transaction_data,
@@ -417,6 +427,36 @@ def main():
     if page == "Overview":
         # Task 3: Title (once per page)
         st.title("Business Overview")
+
+        # ── Threshold-Based Visual Alerts (Assignment 2.56) ──
+        churn_val = curr.get("churn_rate", 0.0)
+        churn_rate_pct = churn_val * 100.0 if churn_val <= 1.0 else churn_val
+        avg_order_val = float(filtered_df["revenue"].mean()) if len(filtered_df) > 0 else 0.0
+
+        total_cells = filtered_df.shape[0] * filtered_df.shape[1]
+        null_count = filtered_df.isnull().sum().sum()
+        null_pct_val = (null_count / total_cells * 100.0) if total_cells > 0 else 0.0
+
+        current_metrics = {
+            "churn_rate": churn_rate_pct,
+            "avg_order_value": avg_order_val,
+            "null_percentage": null_pct_val
+        }
+
+        alerts = check_alerts(current_metrics, ALERT_THRESHOLDS)
+
+        if alerts:
+            for alert in alerts:
+                alert_text = (
+                    "ALERT: " + str(alert["metric"])
+                    + " is " + str(round(alert["value"], 1))
+                    + " (threshold: " + str(alert["threshold"]) + "). "
+                    + str(alert["message"])
+                )
+                if alert["severity"] == "critical":
+                    st.error(alert_text)
+                else:
+                    st.warning(alert_text)
 
         # Task 5: Primary content (KPI cards) loaded ABOVE THE FOLD at the top
         st.header("Key Performance Indicators")
