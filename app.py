@@ -20,6 +20,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from alert_config import ALERT_THRESHOLDS, check_alerts
+
 # ── 1. Page Config - MUST be the very first Streamlit command ──────────────────
 st.set_page_config(
     page_title="Real-Time KPI Dashboard",
@@ -357,6 +359,36 @@ def main():
     if page == "Overview & KPI Dashboard":
         st.title("Real-Time Operational KPI Dashboard")
         st.write("Dynamic business analytics driven by `@st.cache_data` and filtered data.")
+
+        # ── Threshold-Based Visual Alerts (Assignment 2.56) ──
+        churn_val = calculate_churn_rate(filtered_df)
+        churn_rate_pct = churn_val * 100.0 if churn_val <= 1.0 else churn_val
+        avg_order_val = float(filtered_df["revenue"].mean()) if len(filtered_df) > 0 else 0.0
+
+        total_cells = filtered_df.shape[0] * filtered_df.shape[1]
+        null_count = filtered_df.isnull().sum().sum()
+        null_pct_val = (null_count / total_cells * 100.0) if total_cells > 0 else 0.0
+
+        current_metrics = {
+            "churn_rate": churn_rate_pct,
+            "avg_order_value": avg_order_val,
+            "null_percentage": null_pct_val
+        }
+
+        alerts = check_alerts(current_metrics, ALERT_THRESHOLDS)
+
+        if alerts:
+            for alert in alerts:
+                alert_text = (
+                    "ALERT: " + str(alert["metric"])
+                    + " is " + str(round(alert["value"], 1))
+                    + " (threshold: " + str(alert["threshold"]) + "). "
+                    + str(alert["message"])
+                )
+                if alert["severity"] == "critical":
+                    st.error(alert_text)
+                else:
+                    st.warning(alert_text)
 
         # ── Task 1: Display Five Reactive KPI Metrics ──
         st.header("Key Performance Indicators")
