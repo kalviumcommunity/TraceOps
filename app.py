@@ -21,6 +21,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from alert_config import ALERT_THRESHOLDS, check_alerts
+from report_generator import generate_report
+from email_sender import send_report, send_report_email
+
 
 # ── 1. Page Config - MUST be the very first Streamlit command ──────────────────
 st.set_page_config(
@@ -355,7 +358,32 @@ def main():
         st.warning("No data matches current filters. Broaden your selection.")
         st.stop()
 
+    # ── Report Actions (Insight Sharing & Email Report Integration) ──────────────
+    st.sidebar.divider()
+    st.sidebar.header("Report Actions")
+    recipient = st.sidebar.text_input("Recipient Email", key="report_recipient")
+
+    if st.sidebar.button("Send Report"):
+        if not recipient:
+            st.sidebar.error("Enter a recipient email.")
+        else:
+            report_text = generate_report(filtered_df, datetime.date.today())
+            success = send_report(report_text, recipient)
+            if success:
+                st.sidebar.success("Report sent to " + recipient)
+            else:
+                st.sidebar.error("Failed to send. Check email config.")
+
+    st.sidebar.download_button(
+        label="Download Report (CSV)",
+        data=filtered_df.to_csv(index=False),
+        file_name="weekly_analytics_report.csv",
+        mime="text/csv",
+        key="download_report_csv"
+    )
+
     # ── OVERVIEW & LIVE KPI DASHBOARD PAGE ──
+
     if page == "Overview & KPI Dashboard":
         st.title("Real-Time Operational KPI Dashboard")
         st.write("Dynamic business analytics driven by `@st.cache_data` and filtered data.")
